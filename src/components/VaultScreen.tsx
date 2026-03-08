@@ -1,0 +1,278 @@
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { PasswordEntry } from "../App";
+import { useAutoLock } from "../hooks/useAutoLock";
+
+interface VaultScreenProps {
+  dbPath: string;
+  masterPassword: string;
+  initialData: PasswordEntry[];
+  onLock: () => void;
+}
+
+export default function VaultScreen({ dbPath, masterPassword, initialData, onLock }: VaultScreenProps) {
+  const [entries, setEntries] = useState<PasswordEntry[]>(initialData);
+  const [search, setSearch] = useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+  const [showGenerator, setShowGenerator] = useState(false);
+  const [genLength, setGenLength] = useState(16);
+  const [genNumbers, setGenNumbers] = useState(true);
+  const [genSymbols, setGenSymbols] = useState(true);
+  const [previewPassword, setPreviewPassword] = useState("");
+
+  const [form, setForm] = useState<PasswordEntry>({
+    id: "",
+    name: "",
+    url: "",
+    username: "",
+    password: "",
+    notes: ""
+  });
+
+  useAutoLock(60000, onLock);
+
+  const handleSaveData = async (newEntries: PasswordEntry[]) => {
+    try {
+      await invoke("save_database", {
+        path: dbPath,
+        masterPassword,
+        entries: newEntries
+      });
+      setEntries(newEntries);
+    } catch (err: any) {
+      alert("Failed to save: " + err.toString());
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    let updatedEntries = [...entries];
+
+    if (editingIndex !== null) {
+      updatedEntries[editingIndex] = form;
+    } else {
+      updatedEntries.push({ ...form, id: crypto.randomUUID() });
+    }
+
+    handleSaveData(updatedEntries);
+    handleCancel();
+  };
+
+  const handleEdit = (index: number) => {
+    setEditingIndex(index);
+    setForm(entries[index]);
+  };
+
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this entry?")) {
+      const updatedEntries = entries.filter((e) => e.id !== id);
+      handleSaveData(updatedEntries);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditingIndex(null);
+    setForm({ id: "", name: "", url: "", username: "", password: "", notes: "" });
+  };
+
+  const filteredEntries = entries.filter((e) =>
+    e.name.toLowerCase().includes(search.toLowerCase()) ||
+    e.url.toLowerCase().includes(search.toLowerCase()) ||
+    e.username.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const generatePassword = () => {
+    const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const nums = "0123456789";
+    const syms = "!@#$%^&*()_+~`|}{[]:;?><,./-=";
+
+    let pool = chars;
+    if (genNumbers) pool += nums;
+    if (genSymbols) pool += syms;
+
+    let password = "";
+    const randomValues = new Uint32Array(genLength);
+    window.crypto.getRandomValues(randomValues);
+
+    for (let i = 0; i < genLength; i++) {
+      password += pool[randomValues[i] % pool.length];
+    }
+
+    setPreviewPassword(password);
+    return password;
+  };
+
+  useEffect(() => {
+    if (showGenerator) {
+      generatePassword();
+    }
+  }, [genLength, genNumbers, genSymbols, showGenerator]);
+
+  const applyPassword = () => {
+    setForm({ ...form, password: previewPassword });
+    setShowGenerator(false);
+  };
+
+  return (
+    <div style={{ display: "flex", gap: "2rem", width: "100%", maxWidth: "1200px" }}>
+      {/* Sidebar: List */}
+      <div className="glass-panel" style={{ flex: 1, display: "flex", flexDirection: "column", height: "85vh" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <h2>My Vault</h2>
+          <button onClick={onLock} className="danger" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}>
+            Lock Vault
+          </button>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Search..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ marginBottom: "1rem" }}
+        />
+
+        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {filteredEntries.map((entry, idx) => (
+            <div
+              key={entry.id}
+              style={{
+                padding: "1rem",
+                borderRadius: "8px",
+                background: "var(--bg-panel)",
+                border: "1px solid var(--border-color)",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center"
+              }}
+              onClick={() => handleEdit(idx)}
+            >
+              <div style={{ textAlign: "left" }}>
+                <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{entry.name || "Unnamed"}</div>
+                <div style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>{entry.username}</div>
+              </div>
+            </div>
+          ))}
+
+          {filteredEntries.length === 0 && (
+            <div style={{ color: "var(--text-secondary)", marginTop: "2rem" }}>No entries found.</div>
+          )}
+        </div>
+      </div>
+
+      {/* Main Area: Editor */}
+      <div className="glass-panel" style={{ flex: 2, height: "85vh", overflowY: "auto" }}>
+        <h2>{editingIndex !== null ? "Edit Entry" : "New Entry"}</h2>
+
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.5rem", marginTop: "2rem", textAlign: "left" }}>
+          <div>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>Name</label>
+            <input required type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>URL</label>
+            <input type="text" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>Username</label>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input required type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} style={{ flex: 1 }} />
+              {editingIndex !== null && (
+                <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(form.username)} title="Copy Username" style={{ padding: "0 0.8rem" }}>📋</button>
+              )}
+            </div>
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>Password</label>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} style={{ flex: 1 }} />
+              <button type="button" onClick={() => setShowGenerator(true)} title="Generate Password" style={{ padding: "0 0.8rem", fontSize: "1.2rem", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border-color)" }}>🔑</button>
+              {editingIndex !== null && (
+                <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(form.password)} title="Copy Password" style={{ padding: "0 0.8rem" }}>📋</button>
+              )}
+            </div>
+          </div>
+          <div>
+            <label style={{ display: "block", marginBottom: "0.5rem" }}>Notes</label>
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              style={{
+                width: "100%", padding: "1rem", borderRadius: "8px", border: "1px solid var(--border-color)",
+                background: "var(--bg-panel)", color: "var(--text-primary)", fontFamily: "inherit", minHeight: "100px"
+              }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+            <button type="submit" style={{ flex: 1 }}>Save Entry</button>
+            {editingIndex !== null && (
+              <>
+                <button type="button" className="secondary" onClick={handleCancel}>Cancel</button>
+                <button type="button" className="danger" onClick={() => handleDelete(form.id)}>Delete</button>
+              </>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {showGenerator && (
+        <div className="modal-overlay" onClick={() => setShowGenerator(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "0" }}>Generate Password</h3>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
+              <div>
+                <label style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
+                  <span>Length: {genLength}</span>
+                </label>
+                <input
+                  type="range"
+                  min="8" max="64"
+                  value={genLength}
+                  onChange={(e) => setGenLength(Number(e.target.value))}
+                  style={{ padding: "0" }}
+                />
+              </div>
+
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={genNumbers}
+                  onChange={(e) => setGenNumbers(e.target.checked)}
+                  style={{ width: "auto" }}
+                />
+                Include Numbers
+              </label>
+
+              <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={genSymbols}
+                  onChange={(e) => setGenSymbols(e.target.checked)}
+                  style={{ width: "auto" }}
+                />
+                Include Symbols
+              </label>
+
+              <div style={{ marginTop: "0.5rem" }}>
+                <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>Preview:</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <input type="text" readOnly value={previewPassword} style={{ flex: 1, fontFamily: "monospace", fontSize: "1.1rem" }} />
+                  <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(previewPassword)} title="Copy Password Preview" style={{ padding: "0 0.8rem" }}>📋</button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+              <button type="button" onClick={applyPassword} style={{ flex: 1 }}>Apply</button>
+              <button type="button" className="secondary" onClick={() => setShowGenerator(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
