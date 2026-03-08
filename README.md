@@ -1,7 +1,57 @@
-# Tauri + React + Typescript
+# MPass Desktop
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+MPass is a modern, secure, and cross-platform desktop password manager application built with a focus on local privacy and zero-data persistence. 
 
-## Recommended IDE Setup
+It locally encrypts all your passwords using robust cryptographic standards, ensuring your sensitive data is never written to disk in plain text.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Features
+
+- **Local Storage Only**: Your vault is saved exclusively on your local machine as an encrypted `.txt` file.
+- **High Security Ciphers**: Master password key derivation uses **Argon2** and the vault is encrypted with **AES-256-GCM**.
+- **Zero-Persistence**: Decrypted passwords live exclusively in your RAM. `[Salt]:[Nonce]:[Encrypted Data]` is the only format written to memory.
+- **Auto-Lock Security**: Automatic vault locking mechanism that purges RAM data after 60 seconds of inactivity.
+- **Built-in Generator**: Create strong, random passwords specifying length, numbers, and symbols directly in the app.
+- **Glassmorphism UI**: Beautiful, dark-themed vanilla CSS frontend without relying on heavy bloatware UI libraries.
+
+## Technology Stack
+
+* **Backend**: Rust (via Tauri) handles OS file structures, cryptographic algorithms (`aes-gcm`, `argon2`), and state management.
+* **Frontend**: React, TypeScript, and Vite handle a fast, reactive UI layer with web standards. 
+* **Framework**: Tauri v2 binding the backend with the frontend in a lightweight WebView.
+
+## Requirements
+
+To run this project locally, you must have the following developer tools installed on your machine:
+- [Node.js](https://nodejs.org/) (v16+) and `npm`
+- [Rust](https://www.rust-lang.org/tools/install) (`cargo`)
+- Tauri OS-specific prerequisites (e.g., MSVC C++ Build Tools on Windows). See the [Tauri Prerequisites Documentation](https://tauri.app/v1/guides/getting-started/prerequisites).
+
+## Getting Started
+
+### 1. Install Dependencies
+Navigate to the root directory and install the Node frontend modules:
+```bash
+npm install
+```
+
+### 2. Run in Development Mode
+To start the Vite development server and the Tauri Rust backend simultaneously, run:
+```bash
+npm run tauri dev
+```
+*(Note: The first compilation of the Rust backend might take a couple of minutes while it downloads the required crates).*
+
+### 3. Build for Production
+To generate a compiled installer/executable for your operating system:
+```bash
+npm run tauri build
+```
+Once completed, the production bundles will be located in the `src-tauri/target/release/bundle` directory.
+
+## Contributing
+
+When making changes to the Rust backend (`src-tauri/src/`), run unit tests to ensure cryptographic functionalities are intact:
+```bash
+cd src-tauri
+cargo test
+```
