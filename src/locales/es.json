@@ -1,0 +1,48 @@
+{
+  "start_screen": {
+    "title": "MPass Desktop",
+    "subtitle": "Selecciona un baúl para abrir o crea uno nuevo.",
+    "create_new": "Crear Nuevo",
+    "open_vault": "Abrir Baúl",
+    "recent_vaults": "Baúles Recientes",
+    "create_prompt": "Establece una contraseña maestra para tu nuevo baúl.",
+    "open_prompt": "Introduce la contraseña maestra para desbloquear el baúl.",
+    "master_password": "Contraseña Maestra",
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "error_required": "La contraseña maestra es obligatoria"
+  },
+  "vault_screen": {
+    "title": "Mi Baúl",
+    "lock_vault": "Bloquear Baúl",
+    "search": "Buscar...",
+    "unnamed": "Sin nombre",
+    "no_entries": "No se encontraron entradas.",
+    "new_entry": "Nueva Entrada",
+    "edit_entry": "Editar Entrada",
+    "name": "Nombre",
+    "url": "URL",
+    "username": "Usuario",
+    "password": "Contraseña",
+    "notes": "Notas",
+    "save_entry": "Guardar Entrada",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "copy_username": "Copiar Usuario",
+    "copy_password": "Copiar Contraseña",
+    "generate_password": "Generar Contraseña",
+    "generate_and_apply": "Generar y Aplicar",
+    "apply": "Aplicar",
+    "length": "Longitud: {{val}}",
+    "include_numbers": "Incluir Números",
+    "include_symbols": "Incluir Símbolos",
+    "preview": "Previsualización:",
+    "copy_preview": "Copiar Previsualización de Contraseña",
+    "confirm_delete": "¿Estás seguro de que quieres eliminar esta entrada?",
+    "save_error": "Error al guardar: {{error}}"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma"
+  }
+}

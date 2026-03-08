@@ -1,0 +1,48 @@
+{
+  "start_screen": {
+    "title": "MPass Desktop",
+    "subtitle": "Select a vault to open or create a new one.",
+    "create_new": "Create New",
+    "open_vault": "Open Vault",
+    "recent_vaults": "Recent Vaults",
+    "create_prompt": "Set a master password for your new vault.",
+    "open_prompt": "Enter master password to unlock vault.",
+    "master_password": "Master Password",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "error_required": "Master password is required"
+  },
+  "vault_screen": {
+    "title": "My Vault",
+    "lock_vault": "Lock Vault",
+    "search": "Search...",
+    "unnamed": "Unnamed",
+    "no_entries": "No entries found.",
+    "new_entry": "New Entry",
+    "edit_entry": "Edit Entry",
+    "name": "Name",
+    "url": "URL",
+    "username": "Username",
+    "password": "Password",
+    "notes": "Notes",
+    "save_entry": "Save Entry",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "copy_username": "Copy Username",
+    "copy_password": "Copy Password",
+    "generate_password": "Generate Password",
+    "generate_and_apply": "Generate & Apply",
+    "apply": "Apply",
+    "length": "Length: {{val}}",
+    "include_numbers": "Include Numbers",
+    "include_symbols": "Include Symbols",
+    "preview": "Preview:",
+    "copy_preview": "Copy Password Preview",
+    "confirm_delete": "Are you sure you want to delete this entry?",
+    "save_error": "Failed to save: {{error}}"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language"
+  }
+}
