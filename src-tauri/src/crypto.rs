@@ -74,3 +74,85 @@ pub fn decrypt_file(path: &str, password: &str) -> Result<String, String> {
 
     String::from_utf8(dec_bytes).map_err(|_| "Failed to parse decrypted data as UTF-8".to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn get_temp_path(filename: &str) -> PathBuf {
+        let mut path = std::env::temp_dir();
+        path.push(filename);
+        path
+    }
+
+    #[test]
+    fn test_derive_key_consistency() {
+        let password = "super_secret_password";
+        let salt = b"this_is_a_32_byte_salt_123456789";
+
+        let key1 = derive_key(password, salt).unwrap();
+        let key2 = derive_key(password, salt).unwrap();
+
+        assert_eq!(key1, key2);
+    }
+
+    #[test]
+    fn test_derive_key_different_passwords() {
+        let salt = b"this_is_a_32_byte_salt_123456789";
+
+        let key1 = derive_key("password_1", salt).unwrap();
+        let key2 = derive_key("password_2", salt).unwrap();
+
+        assert_ne!(key1, key2);
+    }
+
+    #[test]
+    fn test_encrypt_and_decrypt() {
+        let path = get_temp_path("test_vault_1.txt");
+        let password = "my_strong_password";
+        let data = "{\"entries\": []}";
+
+        let enc_res = encrypt_and_save(path.to_str().unwrap(), password, data);
+        assert!(enc_res.is_ok());
+
+        let dec_res = decrypt_file(path.to_str().unwrap(), password);
+        assert!(dec_res.is_ok());
+        assert_eq!(dec_res.unwrap(), data);
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_decrypt_wrong_password() {
+        let path = get_temp_path("test_vault_2.txt");
+        let password = "correct_password";
+        let wrong_password = "wrong_password";
+        let data = "Sensitive Data";
+
+        encrypt_and_save(path.to_str().unwrap(), password, data).unwrap();
+
+        let dec_res = decrypt_file(path.to_str().unwrap(), wrong_password);
+        assert!(dec_res.is_err());
+        assert_eq!(dec_res.unwrap_err(), "Wrong password or corrupted data!");
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_decrypt_invalid_format() {
+        let path = get_temp_path("test_vault_invalid.txt");
+        let password = "password";
+        fs::write(&path, "invalid_base64_data_without_colons").unwrap();
+
+        let dec_res = decrypt_file(path.to_str().unwrap(), password);
+        assert!(dec_res.is_err());
+        assert_eq!(
+            dec_res.unwrap_err(),
+            "Invalid file format. Ensure it's a valid MPass database."
+        );
+
+        let _ = fs::remove_file(path);
+    }
+}
