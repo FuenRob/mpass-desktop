@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { useTranslation } from "react-i18next";
 import { PasswordEntry } from "../App";
-import SettingsModal from "./SettingsModal";
 
 interface StartScreenProps {
   onUnlock: (path: string, pass: string, data: PasswordEntry[]) => void;
@@ -19,7 +18,6 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<ActionState>({ type: 'idle' });
-  const [showSettings, setShowSettings] = useState(false);
   const { t } = useTranslation();
 
   const recents: string[] = JSON.parse(localStorage.getItem("recent_dbs") || "[]");
@@ -106,9 +104,6 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
     <div className="glass-panel" style={{ maxWidth: "500px", margin: "10vh auto", position: "relative" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
         <h1 style={{ margin: 0 }}>{t("start_screen.title")}</h1>
-        <button onClick={() => setShowSettings(true)} className="secondary" style={{ padding: "0.4rem 0.6rem", background: "transparent", border: "none", fontSize: "1.2rem", cursor: "pointer" }} title={t("settings.title")}>
-          ⚙️
-        </button>
       </div>
 
       {action.type === 'idle' ? (
@@ -172,8 +167,6 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
           </div>
         </form>
       )}
-
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

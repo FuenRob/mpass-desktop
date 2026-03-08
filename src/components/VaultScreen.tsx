@@ -3,7 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { PasswordEntry } from "../App";
 import { useAutoLock } from "../hooks/useAutoLock";
-import SettingsModal from "./SettingsModal";
 
 interface VaultScreenProps {
   dbPath: string;
@@ -16,7 +15,6 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   const [entries, setEntries] = useState<PasswordEntry[]>(initialData);
   const [search, setSearch] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [showSettings, setShowSettings] = useState(false);
   const { t } = useTranslation();
 
   const [showGenerator, setShowGenerator] = useState(false);
@@ -125,9 +123,6 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <h2 style={{ margin: 0 }}>{t("vault_screen.title")}</h2>
-            <button onClick={() => setShowSettings(true)} className="secondary" style={{ padding: "0.4rem 0.6rem", background: "transparent", border: "none", fontSize: "1.2rem", cursor: "pointer" }} title={t("settings.title")}>
-              ⚙️
-            </button>
           </div>
           <button onClick={onLock} className="danger" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}>
             {t("vault_screen.lock_vault")}
@@ -282,8 +277,6 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
           </div>
         </div>
       )}
-
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   );
 }
