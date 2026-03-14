@@ -102,7 +102,7 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
 
   return (
     <div className="glass-panel" style={{ maxWidth: "500px", margin: "10vh auto", position: "relative" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", marginBottom: "0.5rem" }}>
         <h1 style={{ margin: 0 }}>{t("start_screen.title")}</h1>
       </div>
 
