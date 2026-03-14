@@ -36,6 +36,36 @@
   --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
   --glow-accent: 0 0 15px rgba(99, 102, 241, 0.3);
+  
+  --body-bg: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #09090b 60%);
+  --input-bg: rgba(0, 0, 0, 0.2);
+  --input-bg-focus: rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  color: rgba(0, 0, 0, 0.9);
+  background-color: #f8fafc;
+
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-panel: rgba(255, 255, 255, 0.8);
+  --bg-panel-hover: rgba(241, 245, 249, 0.9);
+  
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  
+  --border-color: rgba(0, 0, 0, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  
+  --body-bg: radial-gradient(circle at 50% 10%, #e0e7ff 0%, #f8fafc 60%);
+  --input-bg: rgba(0, 0, 0, 0.05);
+  --input-bg-focus: rgba(0, 0, 0, 0.1);
 }
 
 body {
@@ -45,7 +75,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   /* Premium dynamic background: very dark with a subtle violet/indigo radial glow */
-  background: radial-gradient(circle at 50% 10%, #1e1b4b 0%, #09090b 60%);
+  background: var(--body-bg);
   color: var(--text-primary);
   overflow-x: hidden;
 }
@@ -132,7 +162,7 @@ input, textarea, select {
   padding: 0.85rem 1.2rem;
   border-radius: 10px;
   border: 1px solid var(--border-color);
-  background-color: rgba(0, 0, 0, 0.2);
+  background-color: var(--input-bg);
   color: var(--text-primary);
   font-size: 1rem;
   font-family: inherit;
@@ -142,7 +172,7 @@ input, textarea, select {
 
 input:focus, textarea:focus, select:focus {
   border-color: var(--accent-color);
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: var(--input-bg-focus);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
@@ -244,7 +274,7 @@ input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   height: 6px;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--border-color);
   border-radius: 4px;
 }
 
@@ -257,7 +287,7 @@ input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   margin-top: -6px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-md);
   transition: transform 0.1s;
 }
 

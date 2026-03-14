@@ -39,10 +39,19 @@
     "preview": "Preview:",
     "copy_preview": "Copy Password Preview",
     "confirm_delete": "Are you sure you want to delete this entry?",
-    "save_error": "Failed to save: {{error}}"
+    "save_error": "Failed to save: {{error}}",
+    "folder": "Folder",
+    "no_folder": "No folder",
+    "add_folder": "Add Folder",
+    "add_folder_prompt": "New folder name:",
+    "empty_folder": "Empty folder"
   },
   "settings": {
     "title": "Settings",
-    "language": "Language"
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   }
 }
