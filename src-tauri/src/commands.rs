@@ -20,7 +20,10 @@ pub fn create_database_impl(
     master_password: String,
     state: &AppState,
 ) -> Result<(), String> {
-    let data = VaultData { folders: Vec::new(), entries: Vec::new() };
+    let data = VaultData {
+        folders: Vec::new(),
+        entries: Vec::new(),
+    };
     let json_data = serde_json::to_string(&data).unwrap();
     crypto::encrypt_and_save(&path, &master_password, &json_data)?;
     *state.vault.lock().unwrap() = Some(data);
@@ -42,14 +45,14 @@ pub fn open_database_impl(
     state: &AppState,
 ) -> Result<VaultData, String> {
     let decrypted = crypto::decrypt_file(&path, &master_password)?;
-    
+
     // Try to parse as new format, fallback to legacy array
     let parsed: VaultData = match serde_json::from_str(&decrypted) {
         Ok(data) => data,
         Err(_) => {
             let legacy_entries: Vec<PasswordEntry> = serde_json::from_str(&decrypted)
                 .map_err(|e| format!("Failed to parse data: {}", e))?;
-            
+
             let mut folders = std::collections::HashSet::new();
             for e in &legacy_entries {
                 if !e.folder.is_empty() && e.folder != "Sin carpeta" {
@@ -70,11 +73,11 @@ pub fn open_database_impl(
 #[tauri::command(rename_all = "camelCase")]
 pub fn save_database(
     path: String,
-    masterPassword: String,
-    vaultData: VaultData,
+    master_password: String,
+    vault_data: VaultData,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    save_database_impl(path, masterPassword, vaultData, &state)
+    save_database_impl(path, master_password, vault_data, &state)
 }
 
 pub fn save_database_impl(
@@ -83,8 +86,8 @@ pub fn save_database_impl(
     vault_data: VaultData,
     state: &AppState,
 ) -> Result<(), String> {
-    let json_data =
-        serde_json::to_string(&vault_data).map_err(|e| format!("Failed to serialize data: {}", e))?;
+    let json_data = serde_json::to_string(&vault_data)
+        .map_err(|e| format!("Failed to serialize data: {}", e))?;
 
     crypto::encrypt_and_save(&path, &master_password, &json_data)?;
 
@@ -145,12 +148,17 @@ mod tests {
         let state1 = create_test_state();
 
         // Create first
-        create_database_impl(path.to_str().unwrap().to_string(), password.clone(), &state1).unwrap();
+        create_database_impl(
+            path.to_str().unwrap().to_string(),
+            password.clone(),
+            &state1,
+        )
+        .unwrap();
 
         // Open in a new state
         let state2 = create_test_state();
         let res = open_database_impl(path.to_str().unwrap().to_string(), password, &state2);
-        
+
         assert!(res.is_ok());
         let vault_data = res.unwrap();
         assert!(vault_data.entries.is_empty());
@@ -169,24 +177,27 @@ mod tests {
 
         create_database_impl(path.to_str().unwrap().to_string(), password.clone(), &state).unwrap();
 
-        let entries = vec![
-            PasswordEntry {
-                id: "1".to_string(),
-                name: "Test".to_string(),
-                url: "test.com".to_string(),
-                username: "user".to_string(),
-                password: "123".to_string(),
-                notes: "".to_string(),
-                folder: "Sin carpeta".to_string(),
-            }
-        ];
+        let entries = vec![PasswordEntry {
+            id: "1".to_string(),
+            name: "Test".to_string(),
+            url: "test.com".to_string(),
+            username: "user".to_string(),
+            password: "123".to_string(),
+            notes: "".to_string(),
+            folder: "Sin carpeta".to_string(),
+        }];
 
         let data = VaultData {
             folders: vec!["emails".to_string()],
             entries,
         };
 
-        let save_res = save_database_impl(path.to_str().unwrap().to_string(), password.clone(), data, &state);
+        let save_res = save_database_impl(
+            path.to_str().unwrap().to_string(),
+            password.clone(),
+            data,
+            &state,
+        );
         assert!(save_res.is_ok());
 
         // Verify memory was updated
@@ -196,7 +207,8 @@ mod tests {
 
         // Verify file was updated by opening with a new state
         let state2 = create_test_state();
-        let open_res = open_database_impl(path.to_str().unwrap().to_string(), password, &state2).unwrap();
+        let open_res =
+            open_database_impl(path.to_str().unwrap().to_string(), password, &state2).unwrap();
         assert_eq!(open_res.entries.len(), 1);
         assert_eq!(open_res.entries[0].name, "Test");
 
@@ -206,7 +218,10 @@ mod tests {
     #[test]
     fn test_lock_vault() {
         let state = create_test_state();
-        *state.vault.lock().unwrap() = Some(VaultData { entries: vec![], folders: vec![] });
+        *state.vault.lock().unwrap() = Some(VaultData {
+            entries: vec![],
+            folders: vec![],
+        });
 
         let res = lock_vault_impl(&state);
         assert!(res.is_ok());
