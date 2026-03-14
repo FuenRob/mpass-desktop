@@ -49,6 +49,13 @@
     "confirm_delete_folder": "Are you sure you want to delete the folder '{{folder}}' and all its passwords?",
     "url_invalid": "Please enter a valid URL (must start with http:// or https://)"
   },
+  "legal": {
+    "title": "About",
+    "version": "Version {{version}}",
+    "developer": "Developed by",
+    "copyright": "© {{year}} Roberto Morais. All rights reserved.",
+    "bug_report_label": "Found a bug? Report it at:"
+  },
   "settings": {
     "title": "Settings",
     "language": "Language",

@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, Info } from "lucide-react";
 import StartScreen from "./components/StartScreen";
 import VaultScreen from "./components/VaultScreen";
 import SettingsModal from "./components/SettingsModal";
+import LegalModal from "./components/LegalModal";
 import "./App.css";
 
 export type VaultData = {
@@ -30,6 +31,7 @@ function App() {
   const [masterPassword, setMasterPassword] = useState("");
   const [vaultData, setVaultData] = useState<VaultData | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [showLegal, setShowLegal] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>(() => {
     return (localStorage.getItem("app-theme") as ThemeMode) || "system";
   });
@@ -84,24 +86,44 @@ function App() {
         borderBottom: "1px solid var(--border-color)",
         alignItems: "center" 
       }}>
-        <button 
-          onClick={() => setShowSettings(true)} 
-          className="secondary"
-          style={{ 
-            background: "transparent", 
-            border: "none", 
-            color: "var(--text-secondary)", 
-            cursor: "pointer", 
-            fontSize: "1rem", 
-            fontWeight: "500",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.5rem"
-          }}
-        >
-          <SlidersHorizontal size={18} />
-          {t("settings.title")}
-        </button>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <button
+            onClick={() => setShowLegal(true)}
+            className="secondary"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              fontSize: "1rem",
+              fontWeight: "500",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem"
+            }}
+          >
+            <Info size={18} />
+            {t("legal.title")}
+          </button>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="secondary"
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+              fontSize: "1rem",
+              fontWeight: "500",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem"
+            }}
+          >
+            <SlidersHorizontal size={18} />
+            {t("settings.title")}
+          </button>
+        </div>
       </header>
 
       <main className="animate-fade-in" style={{ flex: 1, overflowY: "auto" }}>
@@ -118,6 +140,7 @@ function App() {
       </main>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} theme={theme} onThemeChange={setTheme} />}
+      {showLegal && <LegalModal onClose={() => setShowLegal(false)} />}
     </div>
   );
 }

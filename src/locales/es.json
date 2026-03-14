@@ -49,6 +49,13 @@
     "confirm_delete_folder": "¿Estás seguro de que quieres eliminar la carpeta '{{folder}}' y todas las contraseñas que contiene?",
     "url_invalid": "Por favor, introduce una URL válida (debe comenzar con http:// o https://)"
   },
+  "legal": {
+    "title": "Acerca de",
+    "version": "Versión {{version}}",
+    "developer": "Desarrollado por",
+    "copyright": "© {{year}} Roberto Morais. Todos los derechos reservados.",
+    "bug_report_label": "¿Encontraste un error? Repórtalo aquí:"
+  },
   "settings": {
     "title": "Ajustes",
     "language": "Idioma",
