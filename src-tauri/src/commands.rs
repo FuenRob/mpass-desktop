@@ -6,6 +6,10 @@ pub struct AppState {
     pub vault: Mutex<Option<VaultData>>,
 }
 
+fn lock_vault_state(state: &AppState) -> Result<std::sync::MutexGuard<'_, Option<VaultData>>, String> {
+    state.vault.lock().map_err(|_| "Vault state is unavailable".to_string())
+}
+
 #[tauri::command]
 pub fn create_database(
     path: String,
@@ -24,9 +28,10 @@ pub fn create_database_impl(
         folders: Vec::new(),
         entries: Vec::new(),
     };
-    let json_data = serde_json::to_string(&data).unwrap();
+    let json_data = serde_json::to_string(&data)
+        .map_err(|e| format!("Failed to serialize data: {}", e))?;
     crypto::encrypt_and_save(&path, &master_password, &json_data)?;
-    *state.vault.lock().unwrap() = Some(data);
+    *lock_vault_state(state)? = Some(data);
     Ok(())
 }
 
@@ -65,7 +70,7 @@ pub fn open_database_impl(
         }
     };
 
-    *state.vault.lock().unwrap() = Some(parsed.clone());
+    *lock_vault_state(state)? = Some(parsed.clone());
     Ok(parsed)
 }
 
@@ -90,7 +95,7 @@ pub fn save_database_impl(
 
     crypto::encrypt_and_save(&path, &master_password, &json_data)?;
 
-    *state.vault.lock().unwrap() = Some(vault_data);
+    *lock_vault_state(state)? = Some(vault_data);
     Ok(())
 }
 
@@ -100,7 +105,7 @@ pub fn lock_vault(state: State<'_, AppState>) -> Result<(), String> {
 }
 
 pub fn lock_vault_impl(state: &AppState) -> Result<(), String> {
-    *state.vault.lock().unwrap() = None;
+    *lock_vault_state(state)? = None;
     Ok(())
 }
 

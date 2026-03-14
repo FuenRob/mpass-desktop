@@ -2,10 +2,10 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { useTranslation } from "react-i18next";
-import { PasswordEntry } from "../App";
+import { VaultData } from "../App";
 
 interface StartScreenProps {
-  onUnlock: (path: string, pass: string, data: PasswordEntry[]) => void;
+  onUnlock: (path: string, pass: string, data: VaultData) => void;
 }
 
 type ActionState =
@@ -39,8 +39,8 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
       if (selectedPath) {
         setAction({ type: 'create', path: selectedPath });
       }
-    } catch (err: any) {
-      setError(err.toString());
+    } catch (err) {
+      setError(String(err));
     }
   };
 
@@ -57,8 +57,8 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
       if (selectedPath && typeof selectedPath === 'string') {
         setAction({ type: 'open', path: selectedPath });
       }
-    } catch (err: any) {
-      setError(err.toString());
+    } catch (err) {
+      setError(String(err));
     }
   };
 
@@ -74,20 +74,20 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
         setLoading(true);
         await invoke("create_database", { path: action.path, masterPassword: password });
         saveRecent(action.path);
-        onUnlock(action.path, password, []);
-      } catch (err: any) {
-        setError(err.toString());
+        onUnlock(action.path, password, { folders: [], entries: [] });
+      } catch (err) {
+        setError(String(err));
       } finally {
         setLoading(false);
       }
     } else if (action.type === 'open') {
       try {
         setLoading(true);
-        const data: PasswordEntry[] = await invoke("open_database", { path: action.path, masterPassword: password });
+        const data: VaultData = await invoke("open_database", { path: action.path, masterPassword: password });
         saveRecent(action.path);
         onUnlock(action.path, password, data);
-      } catch (err: any) {
-        setError(err.toString());
+      } catch (err) {
+        setError(String(err));
       } finally {
         setLoading(false);
       }

@@ -5,6 +5,8 @@ import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { PasswordEntry, VaultData } from "../App";
 import { useAutoLock } from "../hooks/useAutoLock";
 
+const NO_FOLDER = "Sin carpeta";
+
 interface VaultScreenProps {
   dbPath: string;
   masterPassword: string;
@@ -29,6 +31,8 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   const [newFolderName, setNewFolderName] = useState("");
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
   const [form, setForm] = useState<PasswordEntry>({
     id: "",
@@ -37,7 +41,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     username: "",
     password: "",
     notes: "",
-    folder: "Sin carpeta"
+    folder: NO_FOLDER
   });
 
   useAutoLock(60000, onLock);
@@ -50,13 +54,28 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
         vaultData: newVault
       });
       setVault(newVault);
-    } catch (err: any) {
-      alert("Failed to save: " + err.toString());
+      setSaveError(null);
+    } catch (err) {
+      setSaveError(t("vault_screen.save_error", { error: String(err) }));
+    }
+  };
+
+  const isValidUrl = (url: string) => {
+    if (!url) return true;
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isValidUrl(form.url)) {
+      setUrlError(t("vault_screen.url_invalid"));
+      return;
+    }
     let updatedEntries = [...entries];
 
     if (editingIndex !== null) {
@@ -66,7 +85,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     }
 
     let updatedFolders = [...vault.folders];
-    if (form.folder && form.folder !== "Sin carpeta" && !updatedFolders.includes(form.folder)) {
+    if (form.folder && form.folder !== NO_FOLDER && !updatedFolders.includes(form.folder)) {
       updatedFolders.push(form.folder);
     }
 
@@ -90,7 +109,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   };
 
   const handleDeleteFolder = (folderName: string) => {
-    if (folderName === "Sin carpeta") return;
+    if (folderName === NO_FOLDER) return;
     setFolderToDelete(folderName);
   };
 
@@ -98,11 +117,11 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     if (!folderToDelete) return;
     
     const updatedFolders = vault.folders.filter(f => f !== folderToDelete);
-    const updatedEntries = entries.filter(e => (e.folder || "Sin carpeta") !== folderToDelete);
+    const updatedEntries = entries.filter(e => (e.folder || NO_FOLDER) !== folderToDelete);
     
     handleSaveData({ folders: updatedFolders, entries: updatedEntries });
     
-    if (editingIndex !== null && (entries[editingIndex]?.folder || "Sin carpeta") === folderToDelete) {
+    if (editingIndex !== null && (entries[editingIndex]?.folder || NO_FOLDER) === folderToDelete) {
       handleCancel();
     }
     setFolderToDelete(null);
@@ -124,7 +143,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     e.preventDefault();
     if (newFolderName && newFolderName.trim() !== "") {
       const folderName = newFolderName.trim();
-      if (!vault.folders.includes(folderName) && folderName !== "Sin carpeta") {
+      if (!vault.folders.includes(folderName) && folderName !== NO_FOLDER) {
          handleSaveData({ ...vault, folders: [...vault.folders, folderName] });
       }
     }
@@ -133,7 +152,8 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
 
   const handleCancel = () => {
     setEditingIndex(null);
-    setForm({ id: "", name: "", url: "", username: "", password: "", notes: "", folder: "Sin carpeta" });
+    setForm({ id: "", name: "", url: "", username: "", password: "", notes: "", folder: NO_FOLDER });
+    setUrlError(null);
   };
 
   const filteredEntries = entries.filter((e) =>
@@ -151,12 +171,23 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     if (genNumbers) pool += nums;
     if (genSymbols) pool += syms;
 
-    let password = "";
-    const randomValues = new Uint32Array(genLength);
-    window.crypto.getRandomValues(randomValues);
+    const poolSize = pool.length;
+    // Rejection sampling: discard values >= largest multiple of poolSize in uint32 range
+    // to eliminate modulo bias.
+    const maxUnbiased = Math.floor(0x100000000 / poolSize) * poolSize;
 
-    for (let i = 0; i < genLength; i++) {
-      password += pool[randomValues[i] % pool.length];
+    let password = "";
+    let generated = 0;
+    while (generated < genLength) {
+      const batch = new Uint32Array(Math.max(genLength - generated, 8));
+      window.crypto.getRandomValues(batch);
+      for (const value of batch) {
+        if (value < maxUnbiased) {
+          password += pool[value % poolSize];
+          generated++;
+          if (generated >= genLength) break;
+        }
+      }
     }
 
     setPreviewPassword(password);
@@ -175,7 +206,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   };
 
   // Extract unique folders
-  const uniqueFoldersSet = new Set(["Sin carpeta", ...vault.folders, ...entries.map(e => e.folder || "Sin carpeta")]);
+  const uniqueFoldersSet = new Set([NO_FOLDER, ...vault.folders, ...entries.map(e => e.folder || NO_FOLDER)]);
   const uniqueFolders = Array.from(uniqueFoldersSet).sort();
 
   // Group filtered entries by folder
@@ -185,7 +216,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   }, {} as Record<string, PasswordEntry[]>);
 
   filteredEntries.forEach(entry => {
-    const fn = entry.folder || "Sin carpeta";
+    const fn = entry.folder || NO_FOLDER;
     if (groupedEntries[fn]) {
       groupedEntries[fn].push(entry);
     } else {
@@ -218,6 +249,12 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
           </button>
         </div>
 
+        {saveError && (
+          <div style={{ color: "var(--danger-color)", fontSize: "0.85rem", marginBottom: "0.75rem", padding: "0.5rem", borderRadius: "6px", background: "rgba(225,29,72,0.08)" }}>
+            {saveError}
+          </div>
+        )}
+
         <input
           type="text"
           placeholder={t("vault_screen.search")}
@@ -248,9 +285,9 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
               }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   {collapsedFolders[folderName] ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                  {folderName === "Sin carpeta" ? t("vault_screen.no_folder") : folderName}
+                  {folderName === NO_FOLDER ? t("vault_screen.no_folder") : folderName}
                 </span>
-                {folderName !== "Sin carpeta" && (
+                {folderName !== NO_FOLDER && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folderName); }}
                     title={t("vault_screen.delete_folder")}
@@ -299,7 +336,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 })}
                 {!collapsedFolders[folderName] && folderEntries.length === 0 && (
                   <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", paddingLeft: "0.5rem", fontStyle: "italic" }}>
-                    {t("vault_screen.empty_folder") || "Carpeta vacía"}
+                    {t("vault_screen.empty_folder")}
                   </div>
                 )}
               </div>
@@ -320,12 +357,12 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
           <div>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>{t("vault_screen.folder")}</label>
             <select
-              value={form.folder || "Sin carpeta"}
+              value={form.folder || NO_FOLDER}
               onChange={(e) => setForm({ ...form, folder: e.target.value })}
               style={{ width: "100%", padding: "0.8rem", borderRadius: "8px", border: "1px solid var(--border-color)", background: "var(--bg-panel)", color: "var(--text-primary)" }}
             >
-              <option value="Sin carpeta">{t("vault_screen.no_folder")}</option>
-              {uniqueFolders.filter(f => f !== "Sin carpeta").map(f => (
+              <option value={NO_FOLDER}>{t("vault_screen.no_folder")}</option>
+              {uniqueFolders.filter(f => f !== NO_FOLDER).map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
             </select>
@@ -336,7 +373,22 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
           </div>
           <div>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>{t("vault_screen.url")}</label>
-            <input type="text" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+            <input
+              type="text"
+              value={form.url}
+              onChange={(e) => {
+                const val = e.target.value;
+                setForm({ ...form, url: val });
+                setUrlError(val && !isValidUrl(val) ? t("vault_screen.url_invalid") : null);
+              }}
+              style={urlError ? { borderColor: "var(--danger-color)" } : undefined}
+              placeholder="https://example.com"
+            />
+            {urlError && (
+              <span style={{ color: "var(--danger-color)", fontSize: "0.8rem", marginTop: "0.25rem", display: "block" }}>
+                {urlError}
+              </span>
+            )}
           </div>
           <div>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>{t("vault_screen.username")}</label>
@@ -440,11 +492,11 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
       {showFolderModal && (
         <div className="modal-overlay" onClick={() => setShowFolderModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: "1rem" }}>{t("vault_screen.add_folder") || "Añadir Carpeta"}</h3>
+            <h3 style={{ marginBottom: "1rem" }}>{t("vault_screen.add_folder")}</h3>
             <form onSubmit={confirmAddFolder} style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
               <div>
                 <label style={{ display: "block", marginBottom: "0.5rem" }}>
-                  {t("vault_screen.add_folder_prompt") || "Nombre de la nueva carpeta:"}
+                  {t("vault_screen.add_folder_prompt")}
                 </label>
                 <input
                   type="text"
@@ -456,8 +508,8 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 />
               </div>
               <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-                <button type="submit" style={{ flex: 1 }}>{t("vault_screen.apply") || "Crear"}</button>
-                <button type="button" className="secondary" onClick={() => setShowFolderModal(false)}>{t("vault_screen.cancel") || "Cancelar"}</button>
+                <button type="submit" style={{ flex: 1 }}>{t("vault_screen.apply")}</button>
+                <button type="button" className="secondary" onClick={() => setShowFolderModal(false)}>{t("vault_screen.cancel")}</button>
               </div>
             </form>
           </div>
@@ -478,7 +530,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 onClick={confirmDeleteFolder} 
                 style={{ flex: 1 }}
               >
-                {t("vault_screen.delete") || "Eliminar"}
+                {t("vault_screen.delete")}
               </button>
               <button 
                 type="button" 

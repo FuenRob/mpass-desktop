@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { SlidersHorizontal } from "lucide-react";
@@ -51,18 +51,8 @@ function App() {
     if (theme === "system") {
       const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
       const handler = () => applyTheme();
-      if (mediaQuery.addEventListener) {
-        mediaQuery.addEventListener("change", handler);
-      } else {
-        mediaQuery.addListener(handler);
-      }
-      return () => {
-        if (mediaQuery.removeEventListener) {
-          mediaQuery.removeEventListener("change", handler);
-        } else {
-          mediaQuery.removeListener(handler);
-        }
-      };
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
     }
   }, [theme]);
 
@@ -73,7 +63,7 @@ function App() {
     setIsUnlocked(true);
   };
 
-  const handleLock = async () => {
+  const handleLock = useCallback(async () => {
     try {
       await invoke("lock_vault");
     } catch (e) {
@@ -82,7 +72,7 @@ function App() {
     setIsUnlocked(false);
     setMasterPassword("");
     setVaultData(null);
-  };
+  }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
