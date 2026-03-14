@@ -47,7 +47,14 @@
     "empty_folder": "Carpeta vacía",
     "delete_folder": "Eliminar carpeta",
     "confirm_delete_folder": "¿Estás seguro de que quieres eliminar la carpeta '{{folder}}' y todas las contraseñas que contiene?",
-    "url_invalid": "Por favor, introduce una URL válida (debe comenzar con http:// o https://)"
+    "url_invalid": "Por favor, introduce una URL válida (debe comenzar con http:// o https://)",
+    "show_password": "Mostrar contraseña",
+    "hide_password": "Ocultar contraseña",
+    "strength_very_weak": "Muy débil",
+    "strength_weak": "Débil",
+    "strength_fair": "Regular",
+    "strength_strong": "Fuerte",
+    "strength_very_strong": "Muy fuerte"
   },
   "legal": {
     "title": "Acerca de",

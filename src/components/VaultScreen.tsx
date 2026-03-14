@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { PasswordEntry, VaultData } from "../App";
 import { useAutoLock } from "../hooks/useAutoLock";
 
-const NO_FOLDER = "Sin carpeta";
+const NO_FOLDER = "";
+
+// Normalize legacy "Sin carpeta" sentinel stored in older vaults
+const getFolderKey = (folder: string | undefined): string =>
+  !folder || folder === "Sin carpeta" ? NO_FOLDER : folder;
 
 interface VaultScreenProps {
   dbPath: string;
@@ -46,6 +50,24 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   });
 
   useAutoLock(60000, onLock);
+
+  const getPasswordStrength = (password: string): { score: number; labelKey: string } => {
+    if (!password) return { score: 0, labelKey: "" };
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    const labels = [
+      "vault_screen.strength_very_weak",
+      "vault_screen.strength_weak",
+      "vault_screen.strength_fair",
+      "vault_screen.strength_strong",
+      "vault_screen.strength_very_strong",
+    ];
+    return { score, labelKey: labels[Math.min(score, 4)] };
+  };
 
   const handleSaveData = async (newVault: VaultData) => {
     try {
@@ -120,13 +142,13 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
 
   const confirmDeleteFolder = () => {
     if (!folderToDelete) return;
-    
+
     const updatedFolders = vault.folders.filter(f => f !== folderToDelete);
-    const updatedEntries = entries.filter(e => (e.folder || NO_FOLDER) !== folderToDelete);
-    
+    const updatedEntries = entries.filter(e => getFolderKey(e.folder) !== folderToDelete);
+
     handleSaveData({ folders: updatedFolders, entries: updatedEntries });
-    
-    if (editingIndex !== null && (entries[editingIndex]?.folder || NO_FOLDER) === folderToDelete) {
+
+    if (editingIndex !== null && getFolderKey(entries[editingIndex]?.folder) === folderToDelete) {
       handleCancel();
     }
     setFolderToDelete(null);
@@ -149,7 +171,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     if (newFolderName && newFolderName.trim() !== "") {
       const folderName = newFolderName.trim();
       if (!vault.folders.includes(folderName) && folderName !== NO_FOLDER) {
-         handleSaveData({ ...vault, folders: [...vault.folders, folderName] });
+        handleSaveData({ ...vault, folders: [...vault.folders, folderName] });
       }
     }
     setShowFolderModal(false);
@@ -211,7 +233,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   };
 
   // Extract unique folders
-  const uniqueFoldersSet = new Set([NO_FOLDER, ...vault.folders, ...entries.map(e => e.folder || NO_FOLDER)]);
+  const uniqueFoldersSet = new Set([NO_FOLDER, ...vault.folders, ...entries.map(e => getFolderKey(e.folder))]);
   const uniqueFolders = Array.from(uniqueFoldersSet).sort();
 
   // Group filtered entries by folder
@@ -221,7 +243,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   }, {} as Record<string, PasswordEntry[]>);
 
   filteredEntries.forEach(entry => {
-    const fn = entry.folder || NO_FOLDER;
+    const fn = getFolderKey(entry.folder);
     if (groupedEntries[fn]) {
       groupedEntries[fn].push(entry);
     } else {
@@ -230,8 +252,8 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   });
 
   const finalGroupedEntries = Object.entries(groupedEntries).filter(([_fn, list]) => {
-     if (search.trim() !== "") return list.length > 0;
-     return true;
+    if (search.trim() !== "") return list.length > 0;
+    return true;
   });
 
   return (
@@ -241,8 +263,8 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <h2 style={{ margin: 0 }}>{t("vault_screen.title")}</h2>
-            <button 
-              onClick={handleAddFolderClick} 
+            <button
+              onClick={handleAddFolderClick}
               title={t("vault_screen.add_folder")}
               style={{ padding: "0.2rem 0.5rem", fontSize: "1.2rem", background: "transparent", border: "1px solid var(--border-color)", cursor: "pointer", color: "var(--text-secondary)" }}
             >
@@ -271,26 +293,26 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {finalGroupedEntries.sort(([a], [b]) => a.localeCompare(b)).map(([folderName, folderEntries]) => (
             <div key={folderName} style={{ marginBottom: "1rem" }}>
-              <div 
+              <div
                 onClick={() => toggleFolder(folderName)}
-                style={{ 
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                fontWeight: "bold", 
-                color: "var(--text-secondary)", 
-                marginBottom: "0.5rem", 
-                marginLeft: "0.5rem",
-                marginRight: "0.5rem",
-                fontSize: "0.9rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                cursor: "pointer",
-                userSelect: "none"
-              }}>
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  fontWeight: "bold",
+                  color: "var(--text-secondary)",
+                  marginBottom: "0.5rem",
+                  marginLeft: "0.5rem",
+                  marginRight: "0.5rem",
+                  fontSize: "0.9rem",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  cursor: "pointer",
+                  userSelect: "none"
+                }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                   {collapsedFolders[folderName] ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
-                  {folderName === NO_FOLDER ? t("vault_screen.no_folder") : folderName}
+                  {folderName === NO_FOLDER || folderName === "Sin carpeta" ? t("vault_screen.no_folder") : folderName}
                 </span>
                 {folderName !== NO_FOLDER && (
                   <button
@@ -413,6 +435,21 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(form.password)} title={t("vault_screen.copy_password")} style={{ padding: "0 0.8rem" }}>📋</button>
               )}
             </div>
+            {form.password && (() => {
+              const { score, labelKey } = getPasswordStrength(form.password);
+              const colors = ["#e11d48", "#f97316", "#eab308", "#84cc16", "#22c55e"];
+              const color = colors[Math.min(score, 4)];
+              return (
+                <div style={{ marginTop: "0.5rem" }}>
+                  <div style={{ display: "flex", gap: "3px", marginBottom: "4px" }}>
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <div key={i} style={{ flex: 1, height: "4px", borderRadius: "2px", background: i <= score ? color : "var(--border-color)", transition: "background 0.2s" }} />
+                    ))}
+                  </div>
+                  <span style={{ fontSize: "0.75rem", color }}>{t(labelKey)}</span>
+                </div>
+              );
+            })()}
           </div>
           <div>
             <label style={{ display: "block", marginBottom: "0.5rem" }}>{t("vault_screen.notes")}</label>
@@ -548,17 +585,17 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
               {t("vault_screen.confirm_delete_folder", { folder: folderToDelete })}
             </p>
             <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-              <button 
-                type="button" 
-                className="danger" 
-                onClick={confirmDeleteFolder} 
+              <button
+                type="button"
+                className="danger"
+                onClick={confirmDeleteFolder}
                 style={{ flex: 1 }}
               >
                 {t("vault_screen.delete")}
               </button>
-              <button 
-                type="button" 
-                className="secondary" 
+              <button
+                type="button"
+                className="secondary"
                 onClick={() => setFolderToDelete(null)}
               >
                 {t("vault_screen.cancel") || "Cancelar"}

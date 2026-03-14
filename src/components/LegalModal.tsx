@@ -1,7 +1,8 @@
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { getVersion } from "@tauri-apps/api/app";
 
-const APP_VERSION = "0.3.2";
 const ISSUES_URL = "https://github.com/FuenRob/mpass-desktop/issues";
 
 interface LegalModalProps {
@@ -10,6 +11,11 @@ interface LegalModalProps {
 
 export default function LegalModal({ onClose }: LegalModalProps) {
   const { t } = useTranslation();
+  const [version, setVersion] = useState("");
+
+  useEffect(() => {
+    getVersion().then(setVersion);
+  }, []);
 
   const handleOpenIssues = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -27,7 +33,7 @@ export default function LegalModal({ onClose }: LegalModalProps) {
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
           <div>
             <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>MPass Desktop</div>
-            <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>{t("legal.version", { version: APP_VERSION })}</div>
+            <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>{t("legal.version", { version })}</div>
           </div>
 
           <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "1rem" }}>

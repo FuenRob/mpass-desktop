@@ -47,7 +47,14 @@
     "empty_folder": "Empty folder",
     "delete_folder": "Delete folder",
     "confirm_delete_folder": "Are you sure you want to delete the folder '{{folder}}' and all its passwords?",
-    "url_invalid": "Please enter a valid URL (must start with http:// or https://)"
+    "url_invalid": "Please enter a valid URL (must start with http:// or https://)",
+    "show_password": "Show password",
+    "hide_password": "Hide password",
+    "strength_very_weak": "Very weak",
+    "strength_weak": "Weak",
+    "strength_fair": "Fair",
+    "strength_strong": "Strong",
+    "strength_very_strong": "Very strong"
   },
   "legal": {
     "title": "About",
