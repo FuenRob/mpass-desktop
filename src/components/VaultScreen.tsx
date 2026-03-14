@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { PasswordEntry, VaultData } from "../App";
 import { useAutoLock } from "../hooks/useAutoLock";
 
@@ -28,6 +28,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
+  const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
 
   const [form, setForm] = useState<PasswordEntry>({
     id: "",
@@ -105,6 +106,13 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
       handleCancel();
     }
     setFolderToDelete(null);
+  };
+
+  const toggleFolder = (folderName: string) => {
+    setCollapsedFolders(prev => ({
+      ...prev,
+      [folderName]: !prev[folderName]
+    }));
   };
 
   const handleAddFolderClick = () => {
@@ -221,7 +229,9 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
           {finalGroupedEntries.sort(([a], [b]) => a.localeCompare(b)).map(([folderName, folderEntries]) => (
             <div key={folderName} style={{ marginBottom: "1rem" }}>
-              <div style={{ 
+              <div 
+                onClick={() => toggleFolder(folderName)}
+                style={{ 
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
@@ -232,9 +242,14 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 marginRight: "0.5rem",
                 fontSize: "0.9rem",
                 textTransform: "uppercase",
-                letterSpacing: "0.05em"
+                letterSpacing: "0.05em",
+                cursor: "pointer",
+                userSelect: "none"
               }}>
-                <span>{folderName === "Sin carpeta" ? t("vault_screen.no_folder") : folderName}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                  {collapsedFolders[folderName] ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                  {folderName === "Sin carpeta" ? t("vault_screen.no_folder") : folderName}
+                </span>
                 {folderName !== "Sin carpeta" && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folderName); }}
@@ -258,7 +273,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {folderEntries.map((entry) => {
+                {!collapsedFolders[folderName] && folderEntries.map((entry) => {
                   const originalIndex = entries.findIndex(e => e.id === entry.id);
                   return (
                     <div
@@ -282,7 +297,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                     </div>
                   );
                 })}
-                {folderEntries.length === 0 && (
+                {!collapsedFolders[folderName] && folderEntries.length === 0 && (
                   <div style={{ fontSize: "0.85rem", color: "var(--text-secondary)", paddingLeft: "0.5rem", fontStyle: "italic" }}>
                     {t("vault_screen.empty_folder") || "Carpeta vacía"}
                   </div>
