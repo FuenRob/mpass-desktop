@@ -46,7 +46,6 @@ pub fn open_database_impl(
 ) -> Result<VaultData, String> {
     let decrypted = crypto::decrypt_file(&path, &master_password)?;
 
-    // Try to parse as new format, fallback to legacy array
     let parsed: VaultData = match serde_json::from_str(&decrypted) {
         Ok(data) => data,
         Err(_) => {
@@ -132,7 +131,6 @@ mod tests {
         let res = create_database_impl(path.to_str().unwrap().to_string(), password, &state);
         assert!(res.is_ok());
 
-        // View memory state
         let vault_state = state.vault.lock().unwrap();
         assert!(vault_state.is_some());
         assert!(vault_state.as_ref().unwrap().entries.is_empty());
@@ -147,7 +145,6 @@ mod tests {
         let password = "test_password".to_string();
         let state1 = create_test_state();
 
-        // Create first
         create_database_impl(
             path.to_str().unwrap().to_string(),
             password.clone(),
@@ -155,7 +152,6 @@ mod tests {
         )
         .unwrap();
 
-        // Open in a new state
         let state2 = create_test_state();
         let res = open_database_impl(path.to_str().unwrap().to_string(), password, &state2);
 
@@ -200,12 +196,9 @@ mod tests {
         );
         assert!(save_res.is_ok());
 
-        // Verify memory was updated
         let vault_state = state.vault.lock().unwrap();
         assert_eq!(vault_state.as_ref().unwrap().entries.len(), 1);
-        drop(vault_state); // release lock
-
-        // Verify file was updated by opening with a new state
+        drop(vault_state);
         let state2 = create_test_state();
         let open_res =
             open_database_impl(path.to_str().unwrap().to_string(), password, &state2).unwrap();
