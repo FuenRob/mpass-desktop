@@ -30,6 +30,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<string | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -99,13 +100,17 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   };
 
   const handleDelete = (id: string) => {
-    if (confirm(t("vault_screen.confirm_delete"))) {
-      const updatedEntries = entries.filter((e) => e.id !== id);
-      handleSaveData({ ...vault, entries: updatedEntries });
-      if (editingIndex !== null && entries[editingIndex]?.id === id) {
-        handleCancel();
-      }
+    setEntryToDelete(id);
+  };
+
+  const confirmDeleteEntry = () => {
+    if (!entryToDelete) return;
+    const updatedEntries = entries.filter((e) => e.id !== entryToDelete);
+    handleSaveData({ ...vault, entries: updatedEntries });
+    if (editingIndex !== null && entries[editingIndex]?.id === entryToDelete) {
+      handleCancel();
     }
+    setEntryToDelete(null);
   };
 
   const handleDeleteFolder = (folderName: string) => {
@@ -512,6 +517,25 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 <button type="button" className="secondary" onClick={() => setShowFolderModal(false)}>{t("vault_screen.cancel")}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {entryToDelete && (
+        <div className="modal-overlay" onClick={() => setEntryToDelete(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "1rem", color: "var(--danger-color)" }}>{t("vault_screen.delete")}</h3>
+            <p style={{ marginBottom: "1.5rem" }}>
+              {t("vault_screen.confirm_delete")}
+            </p>
+            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+              <button type="button" className="danger" onClick={confirmDeleteEntry} style={{ flex: 1 }}>
+                {t("vault_screen.delete")}
+              </button>
+              <button type="button" className="secondary" onClick={() => setEntryToDelete(null)}>
+                {t("vault_screen.cancel")}
+              </button>
+            </div>
           </div>
         </div>
       )}
