@@ -44,7 +44,9 @@
     "no_folder": "Sin carpeta",
     "add_folder": "Añadir Carpeta",
     "add_folder_prompt": "Nombre de la nueva carpeta:",
-    "empty_folder": "Carpeta vacía"
+    "empty_folder": "Carpeta vacía",
+    "delete_folder": "Eliminar carpeta",
+    "confirm_delete_folder": "¿Estás seguro de que quieres eliminar la carpeta '{{folder}}' y todas las contraseñas que contiene?"
   },
   "settings": {
     "title": "Ajustes",

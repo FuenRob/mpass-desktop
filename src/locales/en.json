@@ -44,7 +44,9 @@
     "no_folder": "No folder",
     "add_folder": "Add Folder",
     "add_folder_prompt": "New folder name:",
-    "empty_folder": "Empty folder"
+    "empty_folder": "Empty folder",
+    "delete_folder": "Delete folder",
+    "confirm_delete_folder": "Are you sure you want to delete the folder '{{folder}}' and all its passwords?"
   },
   "settings": {
     "title": "Settings",

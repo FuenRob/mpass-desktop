@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
+import { Trash2 } from "lucide-react";
 import { PasswordEntry, VaultData } from "../App";
 import { useAutoLock } from "../hooks/useAutoLock";
 
@@ -26,6 +27,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
 
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [folderToDelete, setFolderToDelete] = useState<string | null>(null);
 
   const [form, setForm] = useState<PasswordEntry>({
     id: "",
@@ -80,7 +82,29 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     if (confirm(t("vault_screen.confirm_delete"))) {
       const updatedEntries = entries.filter((e) => e.id !== id);
       handleSaveData({ ...vault, entries: updatedEntries });
+      if (editingIndex !== null && entries[editingIndex]?.id === id) {
+        handleCancel();
+      }
     }
+  };
+
+  const handleDeleteFolder = (folderName: string) => {
+    if (folderName === "Sin carpeta") return;
+    setFolderToDelete(folderName);
+  };
+
+  const confirmDeleteFolder = () => {
+    if (!folderToDelete) return;
+    
+    const updatedFolders = vault.folders.filter(f => f !== folderToDelete);
+    const updatedEntries = entries.filter(e => (e.folder || "Sin carpeta") !== folderToDelete);
+    
+    handleSaveData({ folders: updatedFolders, entries: updatedEntries });
+    
+    if (editingIndex !== null && (entries[editingIndex]?.folder || "Sin carpeta") === folderToDelete) {
+      handleCancel();
+    }
+    setFolderToDelete(null);
   };
 
   const handleAddFolderClick = () => {
@@ -198,15 +222,40 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
           {finalGroupedEntries.sort(([a], [b]) => a.localeCompare(b)).map(([folderName, folderEntries]) => (
             <div key={folderName} style={{ marginBottom: "1rem" }}>
               <div style={{ 
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
                 fontWeight: "bold", 
                 color: "var(--text-secondary)", 
                 marginBottom: "0.5rem", 
                 marginLeft: "0.5rem",
+                marginRight: "0.5rem",
                 fontSize: "0.9rem",
                 textTransform: "uppercase",
                 letterSpacing: "0.05em"
               }}>
-                {folderName === "Sin carpeta" ? t("vault_screen.no_folder") : folderName}
+                <span>{folderName === "Sin carpeta" ? t("vault_screen.no_folder") : folderName}</span>
+                {folderName !== "Sin carpeta" && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleDeleteFolder(folderName); }}
+                    title={t("vault_screen.delete_folder")}
+                    style={{
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--danger-color)",
+                      cursor: "pointer",
+                      padding: "0.2rem",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: 0.7,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = "1"}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = "0.7"}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {folderEntries.map((entry) => {
@@ -396,6 +445,34 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 <button type="button" className="secondary" onClick={() => setShowFolderModal(false)}>{t("vault_screen.cancel") || "Cancelar"}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {folderToDelete && (
+        <div className="modal-overlay" onClick={() => setFolderToDelete(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "1rem", color: "var(--danger-color)" }}>{t("vault_screen.delete_folder")}</h3>
+            <p style={{ marginBottom: "1.5rem" }}>
+              {t("vault_screen.confirm_delete_folder", { folder: folderToDelete })}
+            </p>
+            <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+              <button 
+                type="button" 
+                className="danger" 
+                onClick={confirmDeleteFolder} 
+                style={{ flex: 1 }}
+              >
+                {t("vault_screen.delete") || "Eliminar"}
+              </button>
+              <button 
+                type="button" 
+                className="secondary" 
+                onClick={() => setFolderToDelete(null)}
+              >
+                {t("vault_screen.cancel") || "Cancelar"}
+              </button>
+            </div>
           </div>
         </div>
       )}
