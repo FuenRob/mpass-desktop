@@ -6,8 +6,13 @@ pub struct AppState {
     pub vault: Mutex<Option<VaultData>>,
 }
 
-fn lock_vault_state(state: &AppState) -> Result<std::sync::MutexGuard<'_, Option<VaultData>>, String> {
-    state.vault.lock().map_err(|_| "Vault state is unavailable".to_string())
+fn lock_vault_state(
+    state: &AppState,
+) -> Result<std::sync::MutexGuard<'_, Option<VaultData>>, String> {
+    state
+        .vault
+        .lock()
+        .map_err(|_| "Vault state is unavailable".to_string())
 }
 
 #[tauri::command]
@@ -28,8 +33,8 @@ pub fn create_database_impl(
         folders: Vec::new(),
         entries: Vec::new(),
     };
-    let json_data = serde_json::to_string(&data)
-        .map_err(|e| format!("Failed to serialize data: {}", e))?;
+    let json_data =
+        serde_json::to_string(&data).map_err(|e| format!("Failed to serialize data: {}", e))?;
     crypto::encrypt_and_save(&path, &master_password, &json_data)?;
     *lock_vault_state(state)? = Some(data);
     Ok(())
@@ -106,6 +111,32 @@ pub fn lock_vault(state: State<'_, AppState>) -> Result<(), String> {
 
 pub fn lock_vault_impl(state: &AppState) -> Result<(), String> {
     *lock_vault_state(state)? = None;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn copy_to_clipboard_with_timeout(
+    app_handle: tauri::AppHandle,
+    text: String,
+) -> Result<(), String> {
+    use tauri_plugin_clipboard_manager::ClipboardExt;
+    use std::time::Duration;
+
+    app_handle
+        .clipboard()
+        .write_text(text.clone())
+        .map_err(|e| format!("Failed to write to clipboard: {}", e))?;
+
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_secs(30)).await;
+        
+        if let Ok(current_text) = app_handle.clipboard().read_text() {
+            if current_text == text {
+                let _ = app_handle.clipboard().clear();
+            }
+        }
+    });
+
     Ok(())
 }
 

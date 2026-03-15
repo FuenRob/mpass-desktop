@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
-import { Trash2, ChevronDown, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { PasswordEntry, VaultData } from "../App";
 import { useAutoLock } from "../hooks/useAutoLock";
 
@@ -38,6 +38,7 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   const [collapsedFolders, setCollapsedFolders] = useState<Record<string, boolean>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [urlError, setUrlError] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const [form, setForm] = useState<PasswordEntry>({
     id: "",
@@ -50,6 +51,18 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
   });
 
   useAutoLock(60000, onLock);
+
+  const copyWithClear = async (text: string, field: string) => {
+    try {
+      await invoke("copy_to_clipboard_with_timeout", { text });
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+
+      console.log("Copied to clipboard:", copiedField);
+    } catch (err) {
+      console.error("Failed to copy text:", err);
+    }
+  };
 
   const getPasswordStrength = (password: string): { score: number; labelKey: string } => {
     if (!password) return { score: 0, labelKey: "" };
@@ -422,7 +435,9 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <input required type="text" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} style={{ flex: 1 }} />
               {editingIndex !== null && (
-                <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(form.username)} title={t("vault_screen.copy_username")} style={{ padding: "0 0.8rem" }}>📋</button>
+                <button type="button" className="secondary" onClick={() => copyWithClear(form.username, "username")} title={t("vault_screen.copy_username")} style={{ padding: "0 0.8rem" }}>
+                  {copiedField === "username" ? "✔" : "📋"}
+                </button>
               )}
             </div>
           </div>
@@ -432,7 +447,9 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
               <input required type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} style={{ flex: 1 }} />
               <button type="button" onClick={() => setShowGenerator(true)} title={t("vault_screen.generate_password")} style={{ padding: "0 0.8rem", fontSize: "1.2rem", backgroundColor: "var(--bg-panel)", border: "1px solid var(--border-color)" }}>🔑</button>
               {editingIndex !== null && (
-                <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(form.password)} title={t("vault_screen.copy_password")} style={{ padding: "0 0.8rem" }}>📋</button>
+                <button type="button" className="secondary" onClick={() => copyWithClear(form.password, "password")} title={t("vault_screen.copy_password")} style={{ padding: "0 0.8rem" }}>
+                  {copiedField === "password" ? "✔" : "📋"}
+                </button>
               )}
             </div>
             {form.password && (() => {
@@ -518,7 +535,9 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
                 <label style={{ display: "block", marginBottom: "0.5rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>{t("vault_screen.preview")}</label>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <input type="text" readOnly value={previewPassword} style={{ flex: 1, fontFamily: "monospace", fontSize: "1.1rem" }} />
-                  <button type="button" className="secondary" onClick={() => navigator.clipboard.writeText(previewPassword)} title={t("vault_screen.copy_preview")} style={{ padding: "0 0.8rem" }}>📋</button>
+                  <button type="button" className="secondary" onClick={() => copyWithClear(previewPassword, "preview")} title={t("vault_screen.copy_preview")} style={{ padding: "0 0.8rem" }}>
+                    {copiedField === "preview" ? "✔" : "📋"}
+                  </button>
                 </div>
               </div>
             </div>
