@@ -153,7 +153,11 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
         saveRecent(action.path);
         onUnlock(action.path, password, { folders: [], entries: [] });
       } catch (err) {
-        setError(String(err));
+        if (err === "Wrong password or corrupted data!") {
+          setError(t("start_screen.error_wrong_password"));
+        } else {
+          setError(String(err));
+        }
       } finally {
         setLoading(false);
       }
@@ -164,7 +168,11 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
         saveRecent(action.path);
         onUnlock(action.path, password, data);
       } catch (err) {
-        setError(String(err));
+        if (err === "Wrong password or corrupted data!") {
+          setError(t("start_screen.error_wrong_password"));
+        } else {
+          setError(String(err));
+        }
       } finally {
         setLoading(false);
       }

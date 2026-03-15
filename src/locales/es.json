@@ -10,7 +10,8 @@
     "master_password": "Contraseña Maestra",
     "confirm": "Confirmar",
     "cancel": "Cancelar",
-    "error_required": "La contraseña maestra es obligatoria"
+    "error_required": "La contraseña maestra es obligatoria",
+    "error_wrong_password": "¡Contraseña incorrecta o datos corruptos!"
   },
   "vault_screen": {
     "title": "Mi Baúl",
