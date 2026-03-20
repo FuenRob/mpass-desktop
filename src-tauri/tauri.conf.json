@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "mpass-desktop",
+  "productName": "mpass",
   "version": "0.5.0",
-  "identifier": "com.fuenrob.mpass-desktop.app",
+  "identifier": "com.fuenrob.mpass.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "mpass-desktop",
+        "title": "MPass",
         "width": 1200,
         "height": 1000,
         "minWidth": 800,

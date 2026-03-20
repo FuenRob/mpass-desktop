@@ -1,6 +1,6 @@
 {
   "start_screen": {
-    "title": "MPass Desktop",
+    "title": "MPass",
     "subtitle": "Select a vault to open or create a new one.",
     "create_new": "Create New",
     "open_vault": "Open Vault",

@@ -1,4 +1,4 @@
-# MPass Desktop
+# MPass
 
 MPass is a modern, secure, and cross-platform desktop password manager application built with a focus on local privacy and zero-data persistence. 
 

@@ -32,7 +32,7 @@ export default function LegalModal({ onClose }: LegalModalProps) {
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
           <div>
-            <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>MPass Desktop</div>
+            <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>MPass</div>
             <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>{t("legal.version", { version })}</div>
           </div>
 
