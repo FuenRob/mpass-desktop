@@ -2,6 +2,7 @@ use crate::crypto;
 use crate::models::{PasswordEntry, VaultData};
 use std::sync::Mutex;
 use tauri::State;
+use zeroize::Zeroizing;
 pub struct AppState {
     pub vault: Mutex<Option<VaultData>>,
 }
@@ -29,13 +30,17 @@ pub fn create_database_impl(
     master_password: String,
     state: &AppState,
 ) -> Result<(), String> {
+    // Wrap master_password immediately so it is zeroed when this frame exits.
+    let master_password = Zeroizing::new(master_password);
     let data = VaultData {
         folders: Vec::new(),
         entries: Vec::new(),
     };
-    let json_data =
-        serde_json::to_string(&data).map_err(|e| format!("Failed to serialize data: {}", e))?;
-    crypto::encrypt_and_save(&path, &master_password, &json_data)?;
+    // Wrap the serialized plaintext so it is zeroed after encryption.
+    let json_data = Zeroizing::new(
+        serde_json::to_string(&data).map_err(|e| format!("Failed to serialize data: {}", e))?,
+    );
+    crypto::encrypt_and_save(&path, &*master_password, &*json_data)?;
     *lock_vault_state(state)? = Some(data);
     Ok(())
 }
@@ -54,12 +59,15 @@ pub fn open_database_impl(
     master_password: String,
     state: &AppState,
 ) -> Result<VaultData, String> {
-    let decrypted = crypto::decrypt_file(&path, &master_password)?;
+    // Wrap master_password immediately so it is zeroed when this frame exits.
+    let master_password = Zeroizing::new(master_password);
+    // Wrap the decrypted plaintext JSON so it is zeroed after parsing.
+    let decrypted = Zeroizing::new(crypto::decrypt_file(&path, &*master_password)?);
 
-    let parsed: VaultData = match serde_json::from_str(&decrypted) {
+    let parsed: VaultData = match serde_json::from_str(&*decrypted) {
         Ok(data) => data,
         Err(_) => {
-            let legacy_entries: Vec<PasswordEntry> = serde_json::from_str(&decrypted)
+            let legacy_entries: Vec<PasswordEntry> = serde_json::from_str(&*decrypted)
                 .map_err(|e| format!("Failed to parse data: {}", e))?;
 
             let mut folders = std::collections::HashSet::new();
@@ -95,10 +103,15 @@ pub fn save_database_impl(
     vault_data: VaultData,
     state: &AppState,
 ) -> Result<(), String> {
-    let json_data = serde_json::to_string(&vault_data)
-        .map_err(|e| format!("Failed to serialize data: {}", e))?;
+    // Wrap master_password immediately so it is zeroed when this frame exits.
+    let master_password = Zeroizing::new(master_password);
+    // Wrap the serialized plaintext so it is zeroed after encryption.
+    let json_data = Zeroizing::new(
+        serde_json::to_string(&vault_data)
+            .map_err(|e| format!("Failed to serialize data: {}", e))?,
+    );
 
-    crypto::encrypt_and_save(&path, &master_password, &json_data)?;
+    crypto::encrypt_and_save(&path, &*master_password, &*json_data)?;
 
     *lock_vault_state(state)? = Some(vault_data);
     Ok(())
