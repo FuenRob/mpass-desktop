@@ -15,6 +15,7 @@ type ActionState =
 
 export default function StartScreen({ onUnlock }: StartScreenProps) {
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [action, setAction] = useState<ActionState>({ type: 'idle' });
@@ -101,6 +102,7 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
 
   const applyPassword = () => {
     setPassword(previewPassword);
+    setConfirmPassword(previewPassword);
     setShowGenerator(false);
   };
 
@@ -145,6 +147,10 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
       setError(t("start_screen.error_required"));
       return;
     }
+    if (action.type === 'create' && password !== confirmPassword) {
+      setError(t("start_screen.error_passwords_mismatch"));
+      return;
+    }
 
     if (action.type === 'create') {
       try {
@@ -182,6 +188,7 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
   const cancelAction = () => {
     setAction({ type: 'idle' });
     setPassword("");
+    setConfirmPassword("");
     setError("");
   };
 
@@ -261,6 +268,16 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
               </div>
             );
           })()}
+
+          {action.type === 'create' && (
+            <input
+              type="password"
+              placeholder={t("start_screen.confirm_master_password")}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              disabled={loading}
+            />
+          )}
 
           {error && <div style={{ color: "var(--danger-color)", fontSize: "0.9rem" }}>{error}</div>}
 

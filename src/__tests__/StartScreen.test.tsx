@@ -73,6 +73,10 @@ describe("StartScreen", () => {
       screen.getByPlaceholderText("start_screen.master_password"),
       "MyPass123!"
     );
+    await user.type(
+      screen.getByPlaceholderText("start_screen.confirm_master_password"),
+      "MyPass123!"
+    );
     await user.click(
       screen.getByRole("button", { name: "start_screen.create_new" })
     );
@@ -83,6 +87,31 @@ describe("StartScreen", () => {
         entries: [],
       });
     });
+  });
+
+  it("shows error when passwords do not match", async () => {
+    vi.mocked(save).mockResolvedValue("/vault.txt");
+    const user = userEvent.setup();
+
+    render(<StartScreen onUnlock={vi.fn()} />);
+    await user.click(screen.getByText("start_screen.create_new"));
+    await screen.findByPlaceholderText("start_screen.master_password");
+
+    await user.type(
+      screen.getByPlaceholderText("start_screen.master_password"),
+      "MyPass123!"
+    );
+    await user.type(
+      screen.getByPlaceholderText("start_screen.confirm_master_password"),
+      "DifferentPass!"
+    );
+    await user.click(
+      screen.getByRole("button", { name: "start_screen.create_new" })
+    );
+
+    expect(
+      screen.getByText("start_screen.error_passwords_mismatch")
+    ).toBeInTheDocument();
   });
 
   it("shows error on wrong password when opening vault", async () => {

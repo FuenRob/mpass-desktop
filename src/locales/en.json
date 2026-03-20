@@ -10,7 +10,9 @@
     "master_password": "Master Password",
     "confirm": "Confirm",
     "cancel": "Cancel",
+    "confirm_master_password": "Confirm Master Password",
     "error_required": "Master password is required",
+    "error_passwords_mismatch": "Passwords do not match",
     "error_wrong_password": "Wrong password or corrupted data!"
   },
   "vault_screen": {
