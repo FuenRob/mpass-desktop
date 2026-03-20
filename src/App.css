@@ -14,7 +14,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Sophisticated Palette */
   --bg-primary: #09090b;
   --bg-secondary: #0f0f13;
   --bg-panel: rgba(24, 24, 27, 0.65);
@@ -23,9 +22,9 @@
   --text-primary: #fafafa;
   --text-secondary: #a1a1aa;
   
-  --accent-color: #6366f1; /* Indigo */
+  --accent-color: #6366f1;
   --accent-hover: #4f46e5;
-  --danger-color: #e11d48; /* Rose */
+  --danger-color: #e11d48;
   --danger-hover: #be123c;
   --success-color: #10b981;
   
@@ -74,7 +73,6 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  /* Premium dynamic background: very dark with a subtle violet/indigo radial glow */
   background: var(--body-bg);
   color: var(--text-primary);
   overflow-x: hidden;
@@ -191,7 +189,6 @@ input::placeholder, textarea::placeholder {
   box-shadow: var(--shadow-lg), inset 0 1px 0 0 rgba(255,255,255,0.05);
 }
 
-/* Custom Scrollbar for elegant look */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -207,7 +204,6 @@ input::placeholder, textarea::placeholder {
   background: rgba(255, 255, 255, 0.2);
 }
 
-/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(15px); }
   to { opacity: 1; transform: translateY(0); }
@@ -222,7 +218,6 @@ input::placeholder, textarea::placeholder {
   animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Modal Styles */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -253,7 +248,6 @@ input::placeholder, textarea::placeholder {
   animation: fadeScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Form layout utils */
 label {
   font-size: 0.9rem;
   font-weight: 500;
@@ -261,7 +255,6 @@ label {
   letter-spacing: 0.02em;
 }
 
-/* Range Input Styling */
 input[type=range] {
   -webkit-appearance: none;
   appearance: none;

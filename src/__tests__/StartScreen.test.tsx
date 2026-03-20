@@ -49,7 +49,6 @@ describe("StartScreen", () => {
     await user.click(screen.getByText("start_screen.create_new"));
     await screen.findByPlaceholderText("start_screen.master_password");
 
-    // submit button also shows "start_screen.create_new" in create mode
     await user.click(
       screen.getByRole("button", { name: "start_screen.create_new" })
     );

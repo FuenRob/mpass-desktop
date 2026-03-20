@@ -10,13 +10,19 @@ It locally encrypts all your passwords using robust cryptographic standards, ens
 - **High Security Ciphers**: Master password key derivation uses **Argon2** and the vault is encrypted with **AES-256-GCM**.
 - **Zero-Persistence**: Decrypted passwords live exclusively in your RAM. `[Salt]:[Nonce]:[Encrypted Data]` is the only format written to memory.
 - **Auto-Lock Security**: Automatic vault locking mechanism that purges RAM data after 60 seconds of inactivity.
+- **Clipboard Protection**: Automatically clears copied passwords and usernames from the system clipboard after 30 seconds to prevent unauthorized access.
 - **Built-in Generator**: Create strong, random passwords specifying length, numbers, and symbols directly in the app.
-- **Glassmorphism UI**: Beautiful, dark-themed vanilla CSS frontend without relying on heavy bloatware UI libraries.
+- **Modern UI & UX**:
+  - Glassmorphism design with a fast, reactive interface.
+  - Theme selection (Light, Dark, and System preference).
+  - Collapsible folder organization for better vault management.
+  - Password visibility toggles.
+- **Internationalization (i18n)**: Fully localized in English and Spanish.
 
 ## Technology Stack
 
 * **Backend**: Rust (via Tauri) handles OS file structures, cryptographic algorithms (`aes-gcm`, `argon2`), and state management.
-* **Frontend**: React, TypeScript, and Vite handle a fast, reactive UI layer with web standards. 
+* **Frontend**: React 19, TypeScript, and Vite handle a fast, reactive UI layer, using `i18next` for localization.
 * **Framework**: Tauri v2 binding the backend with the frontend in a lightweight WebView.
 
 ## Requirements

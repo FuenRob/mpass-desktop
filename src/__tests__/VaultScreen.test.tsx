@@ -125,7 +125,6 @@ describe("VaultScreen", () => {
     await user.click(screen.getByText("GitHub"));
     await user.click(screen.getByRole("button", { name: "vault_screen.delete" }));
 
-    // Wait for modal to appear, then click its confirm button (last in the DOM)
     await screen.findByText("vault_screen.confirm_delete");
     const deleteBtns = screen.getAllByRole("button", { name: "vault_screen.delete" });
     await user.click(deleteBtns[deleteBtns.length - 1]);

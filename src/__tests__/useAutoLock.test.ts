@@ -33,15 +33,12 @@ describe("useAutoLock", () => {
     const onLock = vi.fn();
     renderHook(() => useAutoLock(1000, onLock));
 
-    // Advance most of the timeout, then simulate activity
     vi.advanceTimersByTime(800);
     window.dispatchEvent(new MouseEvent("mousemove"));
 
-    // Only 800ms have passed since reset — onLock must not fire
     vi.advanceTimersByTime(800);
     expect(onLock).not.toHaveBeenCalled();
 
-    // Now the full 1000ms have elapsed since activity
     vi.advanceTimersByTime(200);
     expect(onLock).toHaveBeenCalledTimes(1);
   });

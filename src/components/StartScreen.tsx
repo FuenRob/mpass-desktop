@@ -72,8 +72,6 @@ export default function StartScreen({ onUnlock }: StartScreenProps) {
     if (genSymbols) pool += syms;
 
     const poolSize = pool.length;
-    // Rejection sampling: discard values >= largest multiple of poolSize in uint32 range
-    // to eliminate modulo bias.
     const maxUnbiased = Math.floor(0x100000000 / poolSize) * poolSize;
 
     let password = "";

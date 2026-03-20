@@ -9,14 +9,9 @@ use zeroize::Zeroizing;
 
 const SALT_LEN: usize = 32;
 const NONCE_LEN: usize = 12;
-
-// Argon2id parameters — pinned explicitly so a dependency upgrade
-// can never silently change the KDF used to open existing vaults.
-// Values follow OWASP recommendations for high-security desktop use:
-//   m = 65536 KiB (64 MiB), t = 3 iterations, p = 4 lanes.
-const ARGON2_M_COST: u32 = 65536; // memory in KiB
-const ARGON2_T_COST: u32 = 3;     // iterations
-const ARGON2_P_COST: u32 = 4;     // parallelism
+const ARGON2_M_COST: u32 = 65536;
+const ARGON2_T_COST: u32 = 3;
+const ARGON2_P_COST: u32 = 4;
 
 fn build_argon2() -> Result<Argon2<'static>, String> {
     let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(32))
@@ -24,8 +19,6 @@ fn build_argon2() -> Result<Argon2<'static>, String> {
     Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
 }
 
-// Returns the key wrapped in Zeroizing so the 32-byte secret is overwritten
-// with zeros automatically when the caller drops the value.
 pub fn derive_key(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, String> {
     let mut key = Zeroizing::new([0u8; 32]);
     build_argon2()?
@@ -40,7 +33,6 @@ pub fn encrypt_and_save(path: &str, password: &str, data: &str) -> Result<(), St
 
     let nonce_bytes = Aes256Gcm::generate_nonce(&mut OsRng);
 
-    // key_bytes is Zeroizing<[u8; 32]> — zeroed when it goes out of scope.
     let key_bytes = derive_key(password, &salt)?;
     let key = Key::<Aes256Gcm>::from_slice(&*key_bytes);
     let cipher = Aes256Gcm::new(key);
@@ -81,13 +73,10 @@ pub fn decrypt_file(path: &str, password: &str) -> Result<String, String> {
 
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    // key_bytes is Zeroizing<[u8; 32]> — zeroed when it goes out of scope.
     let key_bytes = derive_key(password, &salt)?;
     let key = Key::<Aes256Gcm>::from_slice(&*key_bytes);
     let cipher = Aes256Gcm::new(key);
 
-    // dec_bytes holds the raw plaintext — wrap in Zeroizing so it is overwritten
-    // with zeros once we have converted it to a String and this binding drops.
     let dec_bytes = Zeroizing::new(
         cipher
             .decrypt(nonce, encrypted_data.as_ref())
@@ -112,8 +101,6 @@ mod tests {
 
     #[test]
     fn test_argon2_params_are_explicit() {
-        // Ensures the KDF parameters are never silently changed by a
-        // dependency upgrade — if this test breaks, migration is needed.
         let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(32))
             .expect("Argon2 params must be valid");
         assert_eq!(params.m_cost(), ARGON2_M_COST);

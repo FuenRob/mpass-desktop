@@ -7,7 +7,6 @@ import { useAutoLock } from "../hooks/useAutoLock";
 
 const NO_FOLDER = "";
 
-// Normalize legacy "Sin carpeta" sentinel stored in older vaults
 const getFolderKey = (folder: string | undefined): string =>
   !folder || folder === "Sin carpeta" ? NO_FOLDER : folder;
 
@@ -212,8 +211,6 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     if (genSymbols) pool += syms;
 
     const poolSize = pool.length;
-    // Rejection sampling: discard values >= largest multiple of poolSize in uint32 range
-    // to eliminate modulo bias.
     const maxUnbiased = Math.floor(0x100000000 / poolSize) * poolSize;
 
     let password = "";
@@ -245,11 +242,9 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
     setShowGenerator(false);
   };
 
-  // Extract unique folders
   const uniqueFoldersSet = new Set([NO_FOLDER, ...vault.folders, ...entries.map(e => getFolderKey(e.folder))]);
   const uniqueFolders = Array.from(uniqueFoldersSet).sort();
 
-  // Group filtered entries by folder
   const groupedEntries = uniqueFolders.reduce((acc, fn) => {
     acc[fn] = [];
     return acc;
@@ -271,7 +266,6 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
 
   return (
     <div style={{ display: "flex", gap: "2rem", width: "100%", maxWidth: "1200px" }}>
-      {/* Sidebar: List */}
       <div className="glass-panel" style={{ flex: 1, display: "flex", flexDirection: "column", height: "85vh" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
@@ -389,7 +383,6 @@ export default function VaultScreen({ dbPath, masterPassword, initialData, onLoc
         </div>
       </div>
 
-      {/* Main Area: Editor */}
       <div className="glass-panel" style={{ flex: 2, height: "85vh", overflowY: "auto" }}>
         <h2>{editingIndex !== null ? t("vault_screen.edit_entry") : t("vault_screen.new_entry")}</h2>
 

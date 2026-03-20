@@ -30,13 +30,11 @@ pub fn create_database_impl(
     master_password: String,
     state: &AppState,
 ) -> Result<(), String> {
-    // Wrap master_password immediately so it is zeroed when this frame exits.
     let master_password = Zeroizing::new(master_password);
     let data = VaultData {
         folders: Vec::new(),
         entries: Vec::new(),
     };
-    // Wrap the serialized plaintext so it is zeroed after encryption.
     let json_data = Zeroizing::new(
         serde_json::to_string(&data).map_err(|e| format!("Failed to serialize data: {}", e))?,
     );
@@ -59,9 +57,7 @@ pub fn open_database_impl(
     master_password: String,
     state: &AppState,
 ) -> Result<VaultData, String> {
-    // Wrap master_password immediately so it is zeroed when this frame exits.
     let master_password = Zeroizing::new(master_password);
-    // Wrap the decrypted plaintext JSON so it is zeroed after parsing.
     let decrypted = Zeroizing::new(crypto::decrypt_file(&path, &*master_password)?);
 
     let parsed: VaultData = match serde_json::from_str(&*decrypted) {
@@ -103,9 +99,7 @@ pub fn save_database_impl(
     vault_data: VaultData,
     state: &AppState,
 ) -> Result<(), String> {
-    // Wrap master_password immediately so it is zeroed when this frame exits.
     let master_password = Zeroizing::new(master_password);
-    // Wrap the serialized plaintext so it is zeroed after encryption.
     let json_data = Zeroizing::new(
         serde_json::to_string(&vault_data)
             .map_err(|e| format!("Failed to serialize data: {}", e))?,
