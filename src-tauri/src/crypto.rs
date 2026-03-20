@@ -2,17 +2,25 @@ use aes_gcm::{
     aead::{rand_core::RngCore, Aead, AeadCore, KeyInit, OsRng},
     Aes256Gcm, Key, Nonce,
 };
-use argon2::Argon2;
+use argon2::{Algorithm, Argon2, Params, Version};
 use base64::{engine::general_purpose, Engine as _};
 use std::fs;
 
 const SALT_LEN: usize = 32;
 const NONCE_LEN: usize = 12;
+const ARGON2_M_COST: u32 = 65536;
+const ARGON2_T_COST: u32 = 3;
+const ARGON2_P_COST: u32 = 4;
+
+fn build_argon2() -> Result<Argon2<'static>, String> {
+    let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(32))
+        .map_err(|e| format!("Invalid Argon2 params: {}", e))?;
+    Ok(Argon2::new(Algorithm::Argon2id, Version::V0x13, params))
+}
 
 pub fn derive_key(password: &str, salt: &[u8]) -> Result<[u8; 32], String> {
     let mut key = [0u8; 32];
-    let argon2 = Argon2::default();
-    argon2
+    build_argon2()?
         .hash_password_into(password.as_bytes(), salt, &mut key)
         .map_err(|e| format!("Key derivation failed: {}", e))?;
     Ok(key)
@@ -85,6 +93,18 @@ mod tests {
         let mut path = std::env::temp_dir();
         path.push(filename);
         path
+    }
+
+    #[test]
+    fn test_argon2_params_are_explicit() {
+        // Ensures the KDF parameters are never silently changed by a
+        // dependency upgrade — if this test breaks, migration is needed.
+        let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(32))
+            .expect("Argon2 params must be valid");
+        assert_eq!(params.m_cost(), ARGON2_M_COST);
+        assert_eq!(params.t_cost(), ARGON2_T_COST);
+        assert_eq!(params.p_cost(), ARGON2_P_COST);
+        assert_eq!(params.output_len(), Some(32));
     }
 
     #[test]
