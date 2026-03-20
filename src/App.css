@@ -64,8 +64,8 @@
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
   
   --body-bg: radial-gradient(circle at 50% 10%, #e0e7ff 0%, #f8fafc 60%);
-  --input-bg: rgba(0, 0, 0, 0.05);
-  --input-bg-focus: rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --input-bg-focus: #ffffff;
 }
 
 body {
