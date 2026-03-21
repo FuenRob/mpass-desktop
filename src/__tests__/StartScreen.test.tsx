@@ -81,7 +81,7 @@ describe("StartScreen", () => {
     );
 
     await vi.waitFor(() => {
-      expect(onUnlock).toHaveBeenCalledWith("/vault.txt", "MyPass123!", {
+      expect(onUnlock).toHaveBeenCalledWith("/vault.txt", {
         folders: [],
         entries: [],
       });

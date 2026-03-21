@@ -8,6 +8,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .manage(commands::AppState {
             vault: std::sync::Mutex::new(None),
+            crypto_ctx: std::sync::Mutex::new(None),
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())

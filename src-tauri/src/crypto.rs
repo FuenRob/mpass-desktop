@@ -13,6 +13,20 @@ const ARGON2_M_COST: u32 = 65536;
 const ARGON2_T_COST: u32 = 3;
 const ARGON2_P_COST: u32 = 4;
 
+pub struct CryptoContext {
+    pub key: Zeroizing<[u8; 32]>,
+    pub salt: [u8; SALT_LEN],
+}
+
+impl std::fmt::Debug for CryptoContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CryptoContext")
+            .field("key", &"[REDACTED]")
+            .field("salt", &"[REDACTED]")
+            .finish()
+    }
+}
+
 fn build_argon2() -> Result<Argon2<'static>, String> {
     let params = Params::new(ARGON2_M_COST, ARGON2_T_COST, ARGON2_P_COST, Some(32))
         .map_err(|e| format!("Invalid Argon2 params: {}", e))?;
@@ -27,40 +41,66 @@ pub fn derive_key(password: &str, salt: &[u8]) -> Result<Zeroizing<[u8; 32]>, St
     Ok(key)
 }
 
-pub fn encrypt_and_save(path: &str, password: &str, data: &str) -> Result<(), String> {
+fn atomic_write(path: &str, content: &str) -> Result<(), String> {
+    let tmp = format!("{}.tmp", path);
+    fs::write(&tmp, content).map_err(|e| format!("Failed to write temp file: {}", e))?;
+    fs::rename(&tmp, path).map_err(|e| {
+        let _ = fs::remove_file(&tmp);
+        format!("Failed to finalize file write: {}", e)
+    })?;
+    Ok(())
+}
+
+pub fn encrypt_and_save(path: &str, password: &str, data: &str) -> Result<CryptoContext, String> {
     let mut salt = [0u8; SALT_LEN];
     OsRng.fill_bytes(&mut salt);
 
+    let key = derive_key(password, &salt)?;
+    let ctx = CryptoContext { key, salt };
+    encrypt_and_save_with_context(path, &ctx, data)?;
+    Ok(ctx)
+}
+
+pub fn encrypt_and_save_with_context(
+    path: &str,
+    ctx: &CryptoContext,
+    data: &str,
+) -> Result<(), String> {
     let nonce_bytes = Aes256Gcm::generate_nonce(&mut OsRng);
 
-    let key_bytes = derive_key(password, &salt)?;
-    let key = Key::<Aes256Gcm>::from_slice(&*key_bytes);
+    let key = Key::<Aes256Gcm>::from_slice(&*ctx.key);
     let cipher = Aes256Gcm::new(key);
 
     let encrypted_data = cipher
         .encrypt(&nonce_bytes, data.as_bytes())
         .map_err(|e| format!("Encryption failed: {}", e))?;
 
-    let salt_b64 = general_purpose::STANDARD.encode(salt);
+    let salt_b64 = general_purpose::STANDARD.encode(ctx.salt);
     let nonce_b64 = general_purpose::STANDARD.encode(nonce_bytes);
     let data_b64 = general_purpose::STANDARD.encode(encrypted_data);
 
     let file_content = format!("{}:{}:{}", salt_b64, nonce_b64, data_b64);
-    fs::write(path, file_content).map_err(|e| format!("Failed to write file: {}", e))?;
+    atomic_write(path, &file_content)?;
 
     Ok(())
 }
 
-pub fn decrypt_file(path: &str, password: &str) -> Result<String, String> {
+pub fn decrypt_file(
+    path: &str,
+    password: &str,
+) -> Result<(Zeroizing<String>, CryptoContext), String> {
     let content = fs::read_to_string(path).map_err(|e| format!("Failed to read file: {}", e))?;
     let parts: Vec<&str> = content.split(':').collect();
     if parts.len() != 3 {
         return Err("Invalid file format. Ensure it's a valid MPass database.".to_string());
     }
 
-    let salt = general_purpose::STANDARD
+    let salt_bytes = general_purpose::STANDARD
         .decode(parts[0])
         .map_err(|_| "Failed to decode salt".to_string())?;
+    if salt_bytes.len() != SALT_LEN {
+        return Err("Invalid salt length in file".to_string());
+    }
     let nonce_bytes = general_purpose::STANDARD
         .decode(parts[1])
         .map_err(|_| "Failed to decode nonce".to_string())?;
@@ -73,18 +113,22 @@ pub fn decrypt_file(path: &str, password: &str) -> Result<String, String> {
 
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    let key_bytes = derive_key(password, &salt)?;
-    let key = Key::<Aes256Gcm>::from_slice(&*key_bytes);
-    let cipher = Aes256Gcm::new(key);
+    let mut salt = [0u8; SALT_LEN];
+    salt.copy_from_slice(&salt_bytes);
 
-    let dec_bytes = Zeroizing::new(
-        cipher
-            .decrypt(nonce, encrypted_data.as_ref())
-            .map_err(|_| "Wrong password or corrupted data!".to_string())?,
-    );
+    let key = derive_key(password, &salt)?;
+    let aes_key = Key::<Aes256Gcm>::from_slice(&*key);
+    let cipher = Aes256Gcm::new(aes_key);
 
-    String::from_utf8(dec_bytes.to_vec())
-        .map_err(|_| "Failed to parse decrypted data as UTF-8".to_string())
+    let dec_bytes = cipher
+        .decrypt(nonce, encrypted_data.as_ref())
+        .map_err(|_| "Wrong password or corrupted data!".to_string())?;
+
+    let plain = String::from_utf8(dec_bytes)
+        .map_err(|_| "Failed to parse decrypted data as UTF-8".to_string())?;
+
+    let ctx = CryptoContext { key, salt };
+    Ok((Zeroizing::new(plain), ctx))
 }
 
 #[cfg(test)]
@@ -141,7 +185,26 @@ mod tests {
 
         let dec_res = decrypt_file(path.to_str().unwrap(), password);
         assert!(dec_res.is_ok());
-        assert_eq!(dec_res.unwrap(), data);
+        let (plaintext, _ctx) = dec_res.unwrap();
+        assert_eq!(*plaintext, data);
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_encrypt_and_decrypt_with_context() {
+        let path = get_temp_path("test_vault_ctx.txt");
+        let password = "my_strong_password";
+        let data = "{\"entries\": []}";
+
+        let ctx = encrypt_and_save(path.to_str().unwrap(), password, data).unwrap();
+
+        let new_data = "{\"entries\": [{\"id\": \"1\"}]}";
+        let res = encrypt_and_save_with_context(path.to_str().unwrap(), &ctx, new_data);
+        assert!(res.is_ok());
+
+        let (plaintext, _ctx2) = decrypt_file(path.to_str().unwrap(), password).unwrap();
+        assert_eq!(*plaintext, new_data);
 
         let _ = fs::remove_file(path);
     }

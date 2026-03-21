@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import VaultScreen from "../components/VaultScreen";
-import { PasswordEntry, VaultData } from "../App";
+import { PasswordEntry, VaultData } from "../types";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("../hooks/useAutoLock", () => ({ useAutoLock: vi.fn() }));
@@ -27,7 +27,6 @@ const makeEntry = (overrides: Partial<PasswordEntry> = {}): PasswordEntry => ({
 
 const defaultProps = (initialData: VaultData = { folders: [], entries: [] }) => ({
   dbPath: "/vault.txt",
-  masterPassword: "masterpass",
   initialData,
   onLock: vi.fn(),
 });
@@ -134,7 +133,6 @@ describe("VaultScreen", () => {
         "save_database",
         expect.objectContaining({
           path: "/vault.txt",
-          masterPassword: "masterpass",
           vaultData: expect.objectContaining({ entries: [] }),
         })
       );

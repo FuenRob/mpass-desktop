@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getVersion } from "@tauri-apps/api/app";
+import Modal from "./Modal";
 
 const ISSUES_URL = "https://github.com/FuenRob/mpass-desktop/issues";
 
@@ -23,40 +24,34 @@ export default function LegalModal({ onClose }: LegalModalProps) {
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <h3 style={{ margin: "0" }}>{t("legal.title")}</h3>
-          <button onClick={onClose} className="secondary" style={{ padding: "0.2rem 0.6rem", fontSize: "1.2rem", background: "transparent", border: "none" }}>✖</button>
+    <Modal onClose={onClose}>
+      <div className="modal-header">
+        <h3 style={{ margin: "0" }}>{t("legal.title")}</h3>
+        <button onClick={onClose} className="secondary icon-btn close-btn">✖</button>
+      </div>
+
+      <div className="legal-content">
+        <div>
+          <div className="legal-app-name">MPass</div>
+          <div className="legal-version">{t("legal.version", { version })}</div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", textAlign: "left" }}>
-          <div>
-            <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>MPass</div>
-            <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>{t("legal.version", { version })}</div>
-          </div>
+        <div className="legal-section">
+          <div className="legal-label">{t("legal.developer")}</div>
+          <div className="legal-value">Roberto Morais</div>
+        </div>
 
-          <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "1rem" }}>
-            <div style={{ fontSize: "0.95rem" }}>{t("legal.developer")}</div>
-            <div style={{ fontWeight: "500" }}>Roberto Morais</div>
-          </div>
+        <div className="legal-section legal-copyright">
+          {t("legal.copyright", { year: new Date().getFullYear() })}
+        </div>
 
-          <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "1rem", fontSize: "0.9rem", color: "var(--text-secondary)" }}>
-            {t("legal.copyright", { year: new Date().getFullYear() })}
-          </div>
-
-          <div style={{ borderTop: "1px solid var(--border-color)", paddingTop: "1rem" }}>
-            <div style={{ fontSize: "0.9rem", marginBottom: "0.4rem" }}>{t("legal.bug_report_label")}</div>
-            <a
-              href={ISSUES_URL}
-              onClick={handleOpenIssues}
-              style={{ color: "var(--accent-color)", fontSize: "0.9rem", wordBreak: "break-all" }}
-            >
-              {ISSUES_URL}
-            </a>
-          </div>
+        <div className="legal-section">
+          <div className="legal-label">{t("legal.bug_report_label")}</div>
+          <a href={ISSUES_URL} onClick={handleOpenIssues} className="legal-link">
+            {ISSUES_URL}
+          </a>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

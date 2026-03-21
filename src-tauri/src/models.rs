@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 pub fn default_folder() -> String {
-    "Sin carpeta".to_string()
+    String::new()
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Zeroize, ZeroizeOnDrop)]

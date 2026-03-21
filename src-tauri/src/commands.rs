@@ -1,10 +1,12 @@
-use crate::crypto;
+use crate::crypto::{self, CryptoContext};
 use crate::models::{PasswordEntry, VaultData};
 use std::sync::Mutex;
 use tauri::State;
 use zeroize::Zeroizing;
+
 pub struct AppState {
     pub vault: Mutex<Option<VaultData>>,
+    pub crypto_ctx: Mutex<Option<CryptoContext>>,
 }
 
 fn lock_vault_state(
@@ -14,6 +16,15 @@ fn lock_vault_state(
         .vault
         .lock()
         .map_err(|_| "Vault state is unavailable".to_string())
+}
+
+fn lock_crypto_state(
+    state: &AppState,
+) -> Result<std::sync::MutexGuard<'_, Option<CryptoContext>>, String> {
+    state
+        .crypto_ctx
+        .lock()
+        .map_err(|_| "Crypto state is unavailable".to_string())
 }
 
 #[tauri::command]
@@ -38,8 +49,9 @@ pub fn create_database_impl(
     let json_data = Zeroizing::new(
         serde_json::to_string(&data).map_err(|e| format!("Failed to serialize data: {}", e))?,
     );
-    crypto::encrypt_and_save(&path, &*master_password, &*json_data)?;
+    let ctx = crypto::encrypt_and_save(&path, &*master_password, &*json_data)?;
     *lock_vault_state(state)? = Some(data);
+    *lock_crypto_state(state)? = Some(ctx);
     Ok(())
 }
 
@@ -58,7 +70,7 @@ pub fn open_database_impl(
     state: &AppState,
 ) -> Result<VaultData, String> {
     let master_password = Zeroizing::new(master_password);
-    let decrypted = Zeroizing::new(crypto::decrypt_file(&path, &*master_password)?);
+    let (decrypted, ctx) = crypto::decrypt_file(&path, &*master_password)?;
 
     let parsed: VaultData = match serde_json::from_str(&*decrypted) {
         Ok(data) => data,
@@ -72,6 +84,15 @@ pub fn open_database_impl(
                     folders.insert(e.folder.clone());
                 }
             }
+            let legacy_entries: Vec<PasswordEntry> = legacy_entries
+                .into_iter()
+                .map(|mut e| {
+                    if e.folder == "Sin carpeta" {
+                        e.folder = String::new();
+                    }
+                    e
+                })
+                .collect();
             VaultData {
                 folders: folders.into_iter().collect(),
                 entries: legacy_entries,
@@ -80,33 +101,35 @@ pub fn open_database_impl(
     };
 
     *lock_vault_state(state)? = Some(parsed.clone());
+    *lock_crypto_state(state)? = Some(ctx);
     Ok(parsed)
 }
 
 #[tauri::command(rename_all = "camelCase")]
 pub fn save_database(
     path: String,
-    master_password: String,
     vault_data: VaultData,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    save_database_impl(path, master_password, vault_data, &state)
+    save_database_impl(path, vault_data, &state)
 }
 
 pub fn save_database_impl(
     path: String,
-    master_password: String,
     vault_data: VaultData,
     state: &AppState,
 ) -> Result<(), String> {
-    let master_password = Zeroizing::new(master_password);
+    let ctx_guard = lock_crypto_state(state)?;
+    let ctx = ctx_guard.as_ref().ok_or("Vault is not unlocked")?;
+
     let json_data = Zeroizing::new(
         serde_json::to_string(&vault_data)
             .map_err(|e| format!("Failed to serialize data: {}", e))?,
     );
 
-    crypto::encrypt_and_save(&path, &*master_password, &*json_data)?;
+    crypto::encrypt_and_save_with_context(&path, ctx, &*json_data)?;
 
+    drop(ctx_guard);
     *lock_vault_state(state)? = Some(vault_data);
     Ok(())
 }
@@ -118,6 +141,7 @@ pub fn lock_vault(state: State<'_, AppState>) -> Result<(), String> {
 
 pub fn lock_vault_impl(state: &AppState) -> Result<(), String> {
     *lock_vault_state(state)? = None;
+    *lock_crypto_state(state)? = None;
     Ok(())
 }
 
@@ -131,12 +155,12 @@ pub fn copy_to_clipboard_with_timeout(
 
     app_handle
         .clipboard()
-        .write_text(text.clone())
+        .write_text(&text)
         .map_err(|e| format!("Failed to write to clipboard: {}", e))?;
 
     tauri::async_runtime::spawn(async move {
         tokio::time::sleep(Duration::from_secs(30)).await;
-        
+
         if let Ok(current_text) = app_handle.clipboard().read_text() {
             if current_text == text {
                 let _ = app_handle.clipboard().clear();
@@ -162,6 +186,7 @@ mod tests {
     fn create_test_state() -> AppState {
         AppState {
             vault: Mutex::new(None),
+            crypto_ctx: Mutex::new(None),
         }
     }
 
@@ -178,6 +203,10 @@ mod tests {
         assert!(vault_state.is_some());
         assert!(vault_state.as_ref().unwrap().entries.is_empty());
         assert!(vault_state.as_ref().unwrap().folders.is_empty());
+        drop(vault_state);
+
+        let crypto_state = state.crypto_ctx.lock().unwrap();
+        assert!(crypto_state.is_some());
 
         let _ = fs::remove_file(path);
     }
@@ -204,6 +233,10 @@ mod tests {
 
         let vault_state = state2.vault.lock().unwrap();
         assert!(vault_state.is_some());
+        drop(vault_state);
+
+        let crypto_state = state2.crypto_ctx.lock().unwrap();
+        assert!(crypto_state.is_some());
 
         let _ = fs::remove_file(path);
     }
@@ -223,7 +256,7 @@ mod tests {
             username: "user".to_string(),
             password: "123".to_string(),
             notes: "".to_string(),
-            folder: "Sin carpeta".to_string(),
+            folder: String::new(),
         }];
 
         let data = VaultData {
@@ -233,7 +266,6 @@ mod tests {
 
         let save_res = save_database_impl(
             path.to_str().unwrap().to_string(),
-            password.clone(),
             data,
             &state,
         );
@@ -242,6 +274,7 @@ mod tests {
         let vault_state = state.vault.lock().unwrap();
         assert_eq!(vault_state.as_ref().unwrap().entries.len(), 1);
         drop(vault_state);
+
         let state2 = create_test_state();
         let open_res =
             open_database_impl(path.to_str().unwrap().to_string(), password, &state2).unwrap();
@@ -249,6 +282,21 @@ mod tests {
         assert_eq!(open_res.entries[0].name, "Test");
 
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn test_save_database_without_unlock_fails() {
+        let path = get_temp_path("test_cmd_save_no_unlock.txt");
+        let state = create_test_state();
+
+        let data = VaultData {
+            folders: vec![],
+            entries: vec![],
+        };
+
+        let res = save_database_impl(path.to_str().unwrap().to_string(), data, &state);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), "Vault is not unlocked");
     }
 
     #[test]
@@ -264,5 +312,9 @@ mod tests {
 
         let vault_state = state.vault.lock().unwrap();
         assert!(vault_state.is_none());
+        drop(vault_state);
+
+        let crypto_state = state.crypto_ctx.lock().unwrap();
+        assert!(crypto_state.is_none());
     }
 }
